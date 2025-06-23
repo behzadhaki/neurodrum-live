@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <JuceHeader.h>
+#include "shared_plugin_helpers/shared_plugin_helpers.h"
 #include "PluginProcessor.h"
 
 //==============================================================================

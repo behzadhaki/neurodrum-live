@@ -1,0 +1,196 @@
+cmake_minimum_required(VERSION 3.16)
+project(GrooveTransformerPlugin)
+
+# Set C++ Standard
+target_compile_definitions(${BaseTargetName}
+        PUBLIC
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_VST3_CAN_REPLACE_VST2=0)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ==============================================================================
+# Set Platform-Specific Paths
+# ==============================================================================
+set(TORCH_VERSION 2.0.1)
+    set(APP_SUPPORT_PATH "C:/ProgramData/")  # Must end with a slash
+    set(TORCH_ROOT_PATH "C:/ProgramData/libtorch-${TORCH_VERSION}-Release")
+
+message(STATUS "APP_SUPPORT_PATH: ${APP_SUPPORT_PATH}")
+message(STATUS "TORCH_ROOT_PATH: ${TORCH_ROOT_PATH}")
+
+# ==============================================================================
+# Find and Include LibTorch
+# ==============================================================================
+find_package(Torch HINTS "${TORCH_ROOT_PATH}")
+
+if (Torch_FOUND)
+    message(STATUS "Torch found at: ${TORCH_INSTALL_PREFIX}")
+else()
+    message(FATAL_ERROR "Torch not found! Please install it by running CMake/InstallTorch/install_libtorch.bat in the project root directory.")
+endif()
+
+# Explicitly add Libtorch include directories to fix missing headers issue
+include_directories("${TORCH_ROOT_PATH}/include")
+include_directories("${TORCH_ROOT_PATH}/include/torch/csrc/api/include")
+
+# ==============================================================================
+# Add Source Files
+# ==============================================================================
+target_sources(${BaseTargetName} PRIVATE
+    ../shared_plugin_helpers/shared_plugin_helpers.cpp
+    ../Source/NeuralMidiFXPlugin/PluginProcessor.cpp
+    ../Source/NeuralMidiFXPlugin/processBlock.cpp
+    ../Source/NeuralMidiFXPlugin/PluginEditor.cpp
+    ../Source/DeploymentThreads/DeploymentThread.cpp
+    ../Source/Includes/colored_cout.cpp
+    deploy.h
+    settings.json
+)
+
+# ==============================================================================
+# Link Required Libraries
+# ==============================================================================
+    target_link_libraries(${BaseTargetName} PRIVATE
+        shared_plugin_helpers
+        juce_recommended_config_flags
+        juce_recommended_lto_flags
+        juce_recommended_warning_flags
+
+        # Correct Libtorch .lib files
+        "${TORCH_ROOT_PATH}/lib/torch.lib"
+        "${TORCH_ROOT_PATH}/lib/torch_cpu.lib"
+        "${TORCH_ROOT_PATH}/lib/c10.lib"
+        "${TORCH_ROOT_PATH}/lib/kineto.lib"
+    )
+
+# ==============================================================================
+# Copy DLLs After Build (Windows)
+# ==============================================================================
+set(LIBTORCH_DLLS
+    "asmjit.dll"
+    "c10.dll"
+    "fbgemm.dll"
+    "fbjni.dll"
+    "libiomp5md.dll"
+    "libiompstubs5md.dll"
+    "pytorch_jni.dll"
+    "torch.dll"
+    "torch_cpu.dll"
+    "torch_global_deps.dll"
+    "uv.dll"
+)
+
+foreach(DLL ${LIBTORCH_DLLS})
+    if (EXISTS "${TORCH_ROOT_PATH}/lib/${DLL}")
+        add_custom_command(TARGET ${BaseTargetName} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${TORCH_ROOT_PATH}/lib/${DLL}"
+            "$<TARGET_FILE_DIR:${BaseTargetName}>"
+        )
+    else()
+        message(WARNING "Warning: ${DLL} not found in ${TORCH_ROOT_PATH}/bin/! Skipping copy.")
+    endif()
+endforeach()
+
+
+# ==============================================================================
+# Define Paths for Resources and Settings
+# ==============================================================================
+string(REPLACE "/" "\\\\" ROOT_INSTALL_DIR "${APP_SUPPORT_PATH}\\${BaseTargetName}")
+
+# Copy TorchScripts directory
+file(COPY "${CMAKE_SOURCE_DIR}/PluginCode/TorchScripts" DESTINATION "${ROOT_INSTALL_DIR}")
+
+# Define paths for models, processing scripts, and presets
+add_definitions(-DDEFAULT_MODEL_DIR="${ROOT_INSTALL_DIR}/TorchScripts/Models")
+add_definitions(-DDEFAULT_PROCESSING_SCRIPTS_DIR="${ROOT_INSTALL_DIR}/TorchScripts/ProcessingScripts")
+set(DEFAULT_PRESET_DIR "${ROOT_INSTALL_DIR}/Presets")
+add_definitions(-DDEFAULT_PRESET_DIR="${ROOT_INSTALL_DIR}/Presets")
+
+# Create GUI directory and copy settings.json
+file(MAKE_DIRECTORY "${ROOT_INSTALL_DIR}/GUI")
+file(COPY "${CMAKE_SOURCE_DIR}/PluginCode/settings.json" DESTINATION "${ROOT_INSTALL_DIR}/GUI")
+
+# Define DEFAULT_SETTINGS_FILE_PATH
+set(DEFAULT_SETTINGS_PATH "${ROOT_INSTALL_DIR}/GUI/settings.json")
+if (MSVC)
+    string(REPLACE "/" "\\\\" DEFAULT_SETTINGS_PATH "${DEFAULT_SETTINGS_PATH}")
+endif()
+add_definitions(-DDEFAULT_SETTINGS_FILE_PATH="${DEFAULT_SETTINGS_PATH}")
+message(STATUS "DEFAULT_SETTINGS_PATH: ${DEFAULT_SETTINGS_PATH}")
+
+# Copy PluginCode/img directory to GUI/img
+if (EXISTS "${CMAKE_SOURCE_DIR}/PluginCode/img")
+    file(COPY "${CMAKE_SOURCE_DIR}/PluginCode/img" DESTINATION "${ROOT_INSTALL_DIR}/GUI")
+endif()
+
+# Copy all files in Source/Images to GUI/img
+if (EXISTS "${CMAKE_SOURCE_DIR}/Source/Images")
+    file(GLOB_RECURSE IMAGES "${CMAKE_SOURCE_DIR}/Source/Images/*")
+    foreach(IMAGE ${IMAGES})
+        file(COPY ${IMAGE} DESTINATION "${ROOT_INSTALL_DIR}/GUI/img")
+        message(STATUS "Copying ${IMAGE} to ${ROOT_INSTALL_DIR}/GUI/img")
+    endforeach()
+endif()
+
+# Define DEFAULT_IMG_DIR
+set(DEFAULT_IMG_DIR "${ROOT_INSTALL_DIR}/GUI/img")
+string(REPLACE "/" "\\\\" DEFAULT_IMG_DIR "${DEFAULT_IMG_DIR}")
+
+add_definitions(-DDEFAULT_IMG_DIR="${DEFAULT_IMG_DIR}")
+message(STATUS "Images are located in: ${DEFAULT_IMG_DIR}")
+
+# Root install directory for runtime resources
+add_definitions(-DROOT_INSTALL_DIR="${ROOT_INSTALL_DIR}")
+
+# ==============================================================================
+# Create PRESET_DIR if it does not exist
+# ==============================================================================
+if (NOT EXISTS "${DEFAULT_PRESET_DIR}")
+    message(STATUS "Creating Preset Directory...")
+    file(MAKE_DIRECTORY "${DEFAULT_PRESET_DIR}")
+endif()
+
+# ==============================================================================
+# Final Definitions and Messages
+# ==============================================================================
+add_definitions(-DAPP_NAME=${BaseTargetName})
+message(STATUS "Preset Directory: ${DEFAULT_PRESET_DIR}")
+message(STATUS "BaseTargetName: ${BaseTargetName}")
+message(STATUS "Target Directory: ${TARGET_DIR}")
+
+# ==============================================================================
+# Generate Inno Setup Script
+# ==============================================================================
+set(INNO_SETUP_SCRIPT "${CMAKE_BINARY_DIR}/../Packaging/installer_script_windows_full.iss")
+
+# Generate the .iss installer script
+file(WRITE "${INNO_SETUP_SCRIPT}"
+"[Setup]\n"
+"ArchitecturesInstallIn64BitMode=x64\n"
+"PrivilegesRequired=admin\n"
+"AppName=GrooveTransformerPlugin\n"
+"AppVersion=0.0.1\n"
+"DefaultDirName={cf}\n"
+"DefaultGroupName=GrooveTransformerPlugin\n"
+"OutputBaseFilename=GrooveTransformerPlugin-Full-0.0.1\n"
+"\n"
+"[Files]\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/asmjit.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/c10.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/fbgemm.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/libiomp5md.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/libiompstubs5md.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/pytorch_jni.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/torch.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/torch_cpu.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/torch_global_deps.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${TORCH_ROOT_PATH}/lib/uv.dll\"; DestDir: \"{sys}\"\n"
+"Source: \"${CMAKE_BINARY_DIR}/PluginCode/GrooveTransformerPlugin_artefacts/Release/VST3/*.*\"; DestDir: \"C:\\Program Files\\Common Files\\VST3\"; Flags: recursesubdirs createallsubdirs\n"
+"Source: \"${APP_SUPPORT_PATH}GrooveTransformerPlugin/*.*\"; DestDir: \"C:\\ProgramData\\GrooveTransformerPlugin\"; Flags: recursesubdirs createallsubdirs\n"
+)
+
+message(STATUS "Inno Setup Script: ${INNO_SETUP_SCRIPT}")

@@ -9,7 +9,7 @@
 */
 
 #pragma once
-#include <JuceHeader.h>
+#include "shared_plugin_helpers/shared_plugin_helpers.h"
 
 using namespace juce;
 
