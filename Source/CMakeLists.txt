@@ -1,24 +1,21 @@
-project(Neurodrum VERSION 0.0.1)
+project(NeuroDrumLive VERSION 0.0.1)
 
-set (BaseTargetName Neurodrum)
+set (BaseTargetName NeuroDrumLive)
 
 add_definitions(-DPROJECT_NAME="${BaseTargetName}")
 
-juce_add_plugin("${BaseTargetName}"
-        # VERSION ...                               # Set this if the plugin version is different to the project version
-        # ICON_BIG ...                              # ICON_* arguments specify a path to an image file to use as an icon for the Standalone
-        # ICON_SMALL ...
-        COMPANY_NAME "MusicTechnologyGroup"                 # Replace with a tag identifying your name
-        IS_SYNTH TRUE                               # There is no MIDI vst3 plugin format, so we are going to assume a midi instrument plugin
+juce_add_plugin(${BaseTargetName}
+        COMPANY_NAME "MusicTechnologyGroup"
+        IS_SYNTH TRUE
         NEEDS_MIDI_INPUT TRUE
         NEEDS_MIDI_OUTPUT TRUE
-        AU_MAIN_TYPE kAudioUnitType_MIDIProcessor
         EDITOR_WANTS_KEYBOARD_FOCUS FALSE
-        COPY_PLUGIN_AFTER_BUILD TRUE                 # copies the plugin to user plugins folder so as to easily load in DAW
-        PLUGIN_MANUFACTURER_CODE Juce                #
-        PLUGIN_CODE NRDR                             # MUST BE UNIQUE!! If similar to other plugins, conflicts will occur
-        FORMATS AU VST3 Standalone
-        PRODUCT_NAME "Neurodrum")           # Replace with your plugin title
+        COPY_PLUGIN_AFTER_BUILD TRUE
+        PLUGIN_MANUFACTURER_CODE Juce
+        PLUGIN_CODE NRDR
+        FORMATS VST3
+        PRODUCT_NAME "NeuroDrumLive"
+)
 #
 ## ONLY NEEDED FOR LINUX and MACOS (for installing libtorch in root directory)
 ## You don't need this if you are not planning to distribute the plugin

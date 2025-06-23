@@ -68,4 +68,4 @@ if (${BUILD_JUCE_PROTOTYPE_EXAMPLES})
     #adding project folders:
 endif()
 add_subdirectory(Source)
-
+add_subdirectory(shared_plugin_helpers)
