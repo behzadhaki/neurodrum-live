@@ -19,7 +19,7 @@ NewPluginTemplateAudioProcessorEditor::NewPluginTemplateAudioProcessorEditor (Ne
     mPlayButton.onClick = [&]() { audioProcessor.play(); };
     mGenerateButton.onClick = [&]() { audioProcessor.generateSample(); };
     
-    mLoadButton.setButtonText("Load Model");
+    mLoadButton.setButtonText("Load New Model");
     mPlayButton.setButtonText("Play");
     mGenerateButton.setButtonText("Generate");
     
