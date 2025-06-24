@@ -1,0 +1,3 @@
+#pragma once
+
+#define MODEL_RELATIVE_PATH "@MODEL_RELATIVE_PATH@"

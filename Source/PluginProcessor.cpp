@@ -1,7 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "AudioBufferSampler.h"
-
+#include "ModelPathConfig.h"
 
 
 
@@ -22,6 +22,21 @@ NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
     
     mThreadPool = std::make_unique<ThreadPool>(1);
 
+    std::cout << "MODEL_RELATIVE_PATH: " << MODEL_RELATIVE_PATH << std::endl;
+
+    // check if the model file exists
+    mModelFile = juce::File::getSpecialLocation(juce::File::currentApplicationFile)
+                   .getChildFile(MODEL_RELATIVE_PATH);
+
+    std::cout << "Model file path: " << mModelFile.getFullPathName() << std::endl;
+    if (!mModelFile.existsAsFile())
+    {
+        std::cerr << "❌ Model file does not exist at: " << mModelFile.getFullPathName() << std::endl;
+    } else
+    {
+        std::cout << "✅ Model file exists at: " << mModelFile.getFullPathName() << std::endl;
+
+    }
 }
 
 NewPluginTemplateAudioProcessor::~NewPluginTemplateAudioProcessor()

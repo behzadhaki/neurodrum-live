@@ -111,24 +111,47 @@ endif()
 # ==============================================================================
 # Embed ONNX Model
 # ==============================================================================
-set(MODEL_SRC "${CMAKE_SOURCE_DIR}/models/log_kicks_full.onnx")
+set(MODEL_FILENAME "log_kicks_full.onnx")
+set(MODEL_SRC "${CMAKE_SOURCE_DIR}/models/${MODEL_FILENAME}")
+set(MODEL_RELATIVE_PATH "Contents/Resources/${MODEL_FILENAME}")
 set(MODEL_DEST "${CMAKE_BINARY_DIR}/Source/${PROJECT_NAME}_artefacts/${CMAKE_BUILD_TYPE}/VST3/${PROJECT_NAME}.vst3/Contents/Resources")
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "${MODEL_DEST}"
-        COMMAND ${CMAKE_COMMAND} -E copy "${MODEL_SRC}" "${MODEL_DEST}/log_kicks_full.onnx"
+        COMMAND ${CMAKE_COMMAND} -E copy "${MODEL_SRC}" "${MODEL_DEST}/${MODEL_FILENAME}"
 )
 
 # ==============================================================================
-# Copy Plugin to Local VST3 Folder (macOS only)
+# Generate ModelPathConfig.h
+# ==============================================================================
+configure_file(
+        "${CMAKE_SOURCE_DIR}/ModelPathConfig.h.in"
+        "${CMAKE_BINARY_DIR}/ModelPathConfig.h"
+        @ONLY
+)
+
+target_include_directories(${BaseTargetName} PRIVATE "${CMAKE_BINARY_DIR}")
+
+# ==============================================================================
+# Copy Plugin to Local VST3 Folder
 # ==============================================================================
 if(APPLE)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_BINARY_DIR}/PluginCode/${PROJECT_NAME}_artefacts/${CMAKE_BUILD_TYPE}/VST3/${PROJECT_NAME}.vst3"
+            "${CMAKE_BINARY_DIR}/Source/${PROJECT_NAME}_artefacts/${CMAKE_BUILD_TYPE}/VST3/${PROJECT_NAME}.vst3"
             "$ENV{HOME}/Library/Audio/Plug-Ins/VST3/${PROJECT_NAME}.vst3"
     )
 endif()
 
+if(WIN32)
+    set(VST3_DESTINATION "$ENV{APPDATA}/VST3/${PROJECT_NAME}.vst3")
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_BINARY_DIR}/Source/${PROJECT_NAME}_artefacts/${CMAKE_BUILD_TYPE}/VST3/${PROJECT_NAME}.vst3"
+            "${VST3_DESTINATION}"
+    )
+endif()
+
 message(STATUS "ONNX Runtime headers: ${ONNX_ROOT_DIR}/include")
-message(STATUS "ONNX model copied to: ${MODEL_DEST}/log_kicks_full.onnx")
+message(STATUS "ONNX model copied to: ${MODEL_DEST}/${MODEL_FILENAME}")
