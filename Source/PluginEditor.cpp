@@ -10,7 +10,7 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-NeuroDrumLiveAudioProcessorEditor::NeuroDrumLiveAudioProcessorEditor (NeuroDrumLiveAudioProcessor& p)
+NewPluginTemplateAudioProcessorEditor::NewPluginTemplateAudioProcessorEditor (NewPluginTemplateAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
     // Make sure that before the constructor has finished, you've set the
@@ -51,12 +51,12 @@ NeuroDrumLiveAudioProcessorEditor::NeuroDrumLiveAudioProcessorEditor (NeuroDrumL
     setSize (600, 400);
 }
 
-NeuroDrumLiveAudioProcessorEditor::~NeuroDrumLiveAudioProcessorEditor()
+NewPluginTemplateAudioProcessorEditor::~NewPluginTemplateAudioProcessorEditor()
 {
 }
 
 //==============================================================================
-void NeuroDrumLiveAudioProcessorEditor::paint (juce::Graphics& g)
+void NewPluginTemplateAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
@@ -67,7 +67,7 @@ void NeuroDrumLiveAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawFittedText ("NEURO DRUM LIVE", bounds.removeFromTop(0.15f*getHeight()), juce::Justification::centred, 1);
 }
 
-void NeuroDrumLiveAudioProcessorEditor::resized()
+void NewPluginTemplateAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
@@ -86,7 +86,7 @@ void NeuroDrumLiveAudioProcessorEditor::resized()
     }
 }
 
-void NeuroDrumLiveAudioProcessorEditor::sliderValueChanged (Slider* slider)
+void NewPluginTemplateAudioProcessorEditor::sliderValueChanged (Slider* slider)
 {
     if (slider == &mSliders[params::attack])
     {

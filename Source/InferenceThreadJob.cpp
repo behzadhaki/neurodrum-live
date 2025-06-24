@@ -9,9 +9,10 @@
 */
 
 #include "InferenceThreadJob.h"
+#include <onnxruntime_cxx_api.h>
+#include "AudioBufferSampler.h"
 
-
-InferenceThreadJob::InferenceThreadJob(NeuroDrumLiveAudioProcessor& processor)
+InferenceThreadJob::InferenceThreadJob(NewPluginTemplateAudioProcessor& processor)
 : ThreadPoolJob("InferenceThreadPoolJob"), mProcessor(processor)
 {
     

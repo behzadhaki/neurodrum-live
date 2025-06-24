@@ -1,18 +1,13 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "AudioBufferSampler.h"
 
-//==============================================================================
-NeuroDrumLiveAudioProcessor::NeuroDrumLiveAudioProcessor()
+
+
+
+NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
+     : ProcessorBase (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
@@ -29,17 +24,17 @@ NeuroDrumLiveAudioProcessor::NeuroDrumLiveAudioProcessor()
 
 }
 
-NeuroDrumLiveAudioProcessor::~NeuroDrumLiveAudioProcessor()
+NewPluginTemplateAudioProcessor::~NewPluginTemplateAudioProcessor()
 {
 }
 
 //==============================================================================
-const juce::String NeuroDrumLiveAudioProcessor::getName() const
+const juce::String NewPluginTemplateAudioProcessor::getName() const
 {
     return JucePlugin_Name;
 }
 
-bool NeuroDrumLiveAudioProcessor::acceptsMidi() const
+bool NewPluginTemplateAudioProcessor::acceptsMidi() const
 {
    #if JucePlugin_WantsMidiInput
     return true;
@@ -48,7 +43,7 @@ bool NeuroDrumLiveAudioProcessor::acceptsMidi() const
    #endif
 }
 
-bool NeuroDrumLiveAudioProcessor::producesMidi() const
+bool NewPluginTemplateAudioProcessor::producesMidi() const
 {
    #if JucePlugin_ProducesMidiOutput
     return true;
@@ -57,7 +52,7 @@ bool NeuroDrumLiveAudioProcessor::producesMidi() const
    #endif
 }
 
-bool NeuroDrumLiveAudioProcessor::isMidiEffect() const
+bool NewPluginTemplateAudioProcessor::isMidiEffect() const
 {
    #if JucePlugin_IsMidiEffect
     return true;
@@ -66,51 +61,51 @@ bool NeuroDrumLiveAudioProcessor::isMidiEffect() const
    #endif
 }
 
-double NeuroDrumLiveAudioProcessor::getTailLengthSeconds() const
+double NewPluginTemplateAudioProcessor::getTailLengthSeconds() const
 {
     return 0.0;
 }
 
-int NeuroDrumLiveAudioProcessor::getNumPrograms()
+int NewPluginTemplateAudioProcessor::getNumPrograms()
 {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int NeuroDrumLiveAudioProcessor::getCurrentProgram()
+int NewPluginTemplateAudioProcessor::getCurrentProgram()
 {
     return 0;
 }
 
-void NeuroDrumLiveAudioProcessor::setCurrentProgram (int index)
+void NewPluginTemplateAudioProcessor::setCurrentProgram (int index)
 {
 }
 
-const juce::String NeuroDrumLiveAudioProcessor::getProgramName (int index)
+const juce::String NewPluginTemplateAudioProcessor::getProgramName (int index)
 {
     return {};
 }
 
-void NeuroDrumLiveAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void NewPluginTemplateAudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
 }
 
 //==============================================================================
-void NeuroDrumLiveAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void NewPluginTemplateAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
     mSampler.setCurrentPlaybackSampleRate(sampleRate);
 }
 
-void NeuroDrumLiveAudioProcessor::releaseResources()
+void NewPluginTemplateAudioProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool NeuroDrumLiveAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool NewPluginTemplateAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
   #if JucePlugin_IsMidiEffect
     juce::ignoreUnused (layouts);
@@ -135,7 +130,7 @@ bool NeuroDrumLiveAudioProcessor::isBusesLayoutSupported (const BusesLayout& lay
 }
 #endif
 
-void NeuroDrumLiveAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void NewPluginTemplateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
@@ -149,25 +144,25 @@ void NeuroDrumLiveAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 }
 
 //==============================================================================
-bool NeuroDrumLiveAudioProcessor::hasEditor() const
+bool NewPluginTemplateAudioProcessor::hasEditor() const
 {
     return true; // (change this to false if you choose to not supply an editor)
 }
 
-juce::AudioProcessorEditor* NeuroDrumLiveAudioProcessor::createEditor()
+juce::AudioProcessorEditor* NewPluginTemplateAudioProcessor::createEditor()
 {
-    return new NeuroDrumLiveAudioProcessorEditor (*this);
+    return new NewPluginTemplateAudioProcessorEditor (*this);
 }
 
 //==============================================================================
-void NeuroDrumLiveAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void NewPluginTemplateAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
 }
 
-void NeuroDrumLiveAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void NewPluginTemplateAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
@@ -177,15 +172,15 @@ void NeuroDrumLiveAudioProcessor::setStateInformation (const void* data, int siz
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new NeuroDrumLiveAudioProcessor();
+    return new NewPluginTemplateAudioProcessor();
 }
 
-void NeuroDrumLiveAudioProcessor::play()
+void NewPluginTemplateAudioProcessor::play()
 {
     mSampler.noteOn(1, 60, 1.f);
 }
 
-void NeuroDrumLiveAudioProcessor::loadFile()
+void NewPluginTemplateAudioProcessor::loadFile()
 {
     auto chooserFlags = juce::FileBrowserComponent::openMode
                       | juce::FileBrowserComponent::canSelectFiles;
@@ -202,7 +197,7 @@ void NeuroDrumLiveAudioProcessor::loadFile()
     });
 }
 
-void NeuroDrumLiveAudioProcessor::generateSample()
+void NewPluginTemplateAudioProcessor::generateSample()
 {
     juce::ScopedLock irCalculationlock(mMutex);
     if (mThreadPool)
@@ -213,7 +208,9 @@ void NeuroDrumLiveAudioProcessor::generateSample()
     mThreadPool->addJob(new InferenceThreadJob(*this), true);
 }
 
-const File NeuroDrumLiveAudioProcessor::getModelFile()
+const File NewPluginTemplateAudioProcessor::getModelFile()
 {
     return mModelFile;
 }
+
+

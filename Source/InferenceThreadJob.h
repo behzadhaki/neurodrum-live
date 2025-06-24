@@ -16,18 +16,18 @@
 
 using namespace juce;
 
-class NeuroDrumLiveAudioProcessor; // forward declare
+class NewPluginTemplateAudioProcessor; // forward declare
 
 class InferenceThreadJob : public ThreadPoolJob
 {
 public:
     
-    explicit InferenceThreadJob(NeuroDrumLiveAudioProcessor& gluProcessor);
+    explicit InferenceThreadJob(NewPluginTemplateAudioProcessor& gluProcessor);
     virtual ~InferenceThreadJob();
     virtual auto runJob() -> JobStatus;
     
 private:
-    NeuroDrumLiveAudioProcessor& mProcessor;
+    NewPluginTemplateAudioProcessor& mProcessor;
     
     // Prevent uncontrolled usage
     InferenceThreadJob(const InferenceThreadJob&);

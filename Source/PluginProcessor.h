@@ -1,30 +1,16 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
 #pragma once
 
-#include "shared_plugin_helpers/shared_plugin_helpers.h"
-#include <onnxruntime_cxx_api.h>
-#include "AudioBufferSampler.h"
+#include "Parameters.h"
+#include "onnxruntime_c_api.h"
 #include "InferenceThreadJob.h"
-
 
 using namespace juce;
 
-//==============================================================================
-/**
-*/
-class NeuroDrumLiveAudioProcessor  : public juce::AudioProcessor
+class NewPluginTemplateAudioProcessor : public PluginHelpers::ProcessorBase
 {
 public:
-    //==============================================================================
-    NeuroDrumLiveAudioProcessor();
-    ~NeuroDrumLiveAudioProcessor() override;
+    NewPluginTemplateAudioProcessor();
+    ~NewPluginTemplateAudioProcessor() override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -58,14 +44,14 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-    
+
     void loadFile();
     void generateSample();
     void play();
     const File getModelFile();
-    
+
     juce::Synthesiser mSampler;
-    
+
     std::atomic<float> mAttackVal { 0.1f };
     std::atomic<float> mReleaseVal { 0.9f };
     std::atomic<float> mBrightnessVal { 0.46533436f };
@@ -77,14 +63,14 @@ public:
     std::atomic<float> mSharpnessVal { 0.4321724f };
 
 private:
-    
+
     std::unique_ptr<ThreadPool> mThreadPool;
     mutable CriticalSection mMutex;
-    
+
     juce::FileChooser chooser { " Please Load a Model ", juce::File{}, "*.onnx" };
     File mModelFile;
 
-    
+
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NeuroDrumLiveAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewPluginTemplateAudioProcessor)
 };

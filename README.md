@@ -1,25 +1,31 @@
-# neurodrum-live
-neurodrum-live: NeuroDrum Sampler VST/AU/Standalone
+# NeuralDrumLive Plugin 
 
-Generate and play percussion samples using NeuroDrum generative models inside your DAW.
+Fork of Fyfe's [NeuralDrum-Live](https://github.com/Fyfe93/neurodrum-live) plugin, which is a JUCE-based plugin.
 
-![neurodrum-live_gui](assets/neurodrum-live_gui.png)
+The plugin uses a generative NN model to create drum patterns using a number of descriptors. 
 
-## Instructions
-1. Requires the Juce library as this is a Juce project and uses the Projucer for building. Clone from [here](https://github.com/juce-framework/JUCE)
+The model used is based on the following paper: 
 
-2. Clone Onnx runtime and build following the instructions in the Onnyx Documentation [here](https://onnxruntime.ai/docs/how-to/build/inferencing.html)
+```bibtex
+@misc{ramires2020neuralpercussivesynthesisparameterised,
+      title={Neural Percussive Synthesis Parameterised by High-Level Timbral Features}, 
+      author={António Ramires and Pritish Chandna and Xavier Favory and Emilia Gómez and Xavier Serra},
+      year={2020},
+      eprint={1911.11853},
+      archivePrefix={arXiv},
+      primaryClass={eess.AS},
+      url={https://arxiv.org/abs/1911.11853}, 
+}
+```
 
-3. Create "include" and "lib" directories in neurodrum-live project root folder
+# Modifications of Fyfe's Plugin
 
-4. For now you must copy header files and corresponding .a library files over to the previously created 'include' and 'lib' directories. To check you have placed the library files and includes in the correct locations open the Projucer file 'neurodrum-live.jucer' and check against the linked library/include locations.
+- Added a CMake build system to the plugin.
+- Uses static linking of ONNXRuntime using the prebuilt binaries provided by [Fangjun Kuang](https://github.com/csukuangfj/onnxruntime-libs)
 
-5. Launch the Xcode project from the Projucer and build.
+# Compatibility
 
-6. The compiled VST/AU/Standalone will be found in the 'Builds' folder.
-
-## Acknowledgements
-
-Credit given to the Music Technology Group, Universitat Pompeu Fabra, Barcelona who authored the NeuroDrum model architecture. You can check it out [here](https://github.com/pc2752/percussive_synth)
-
-Check out the original paper [here](https://arxiv.org/abs/1911.11853)
+- [x] MacOS (ARM)
+- [ ] MacOS (Intel)
+- [ ] Linux
+- [ ] Windows

@@ -1,24 +1,14 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
-
 #pragma once
 
-#include "shared_plugin_helpers/shared_plugin_helpers.h"
 #include "PluginProcessor.h"
 
-//==============================================================================
-/**
-*/
-class NeuroDrumLiveAudioProcessorEditor  : public juce::AudioProcessorEditor, public Slider::Listener
+
+
+class NewPluginTemplateAudioProcessorEditor  : public juce::AudioProcessorEditor, public Slider::Listener
 {
 public:
-    NeuroDrumLiveAudioProcessorEditor (NeuroDrumLiveAudioProcessor&);
-    ~NeuroDrumLiveAudioProcessorEditor() override;
+    NewPluginTemplateAudioProcessorEditor (NewPluginTemplateAudioProcessor&);
+    ~NewPluginTemplateAudioProcessorEditor() override;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -28,7 +18,7 @@ public:
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    NeuroDrumLiveAudioProcessor& audioProcessor;
+    NewPluginTemplateAudioProcessor& audioProcessor;
     
     juce::TextButton mLoadButton;
     juce::TextButton mPlayButton;
@@ -53,5 +43,5 @@ private:
     Slider mSliders[params::totalParams];
     Label mLabels[params::totalParams];
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NeuroDrumLiveAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewPluginTemplateAudioProcessorEditor)
 };
