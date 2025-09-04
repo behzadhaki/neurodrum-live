@@ -45,31 +45,38 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    void loadFile();
     void generateSample();
     void play();
     const File getModelFile();
 
+    // Parameter access methods
+    AudioProcessorValueTreeState& getValueTreeState() { return parameters; }
+    String getParameterID(int paramIndex);
+    float getParameterValue(int paramIndex);
+
     juce::Synthesiser mSampler;
 
-    std::atomic<float> mAttackVal { 0.1f };
-    std::atomic<float> mReleaseVal { 0.9f };
-    std::atomic<float> mBrightnessVal { 0.46533436f };
-    std::atomic<float> mHardnessVal { 0.6132435f };
-    std::atomic<float> mDepthVal { 0.6906892f };
-    std::atomic<float> mRoughnessVal { 0.5227648f };
-    std::atomic<float> mBoominessVal { 0.6955591f };
-    std::atomic<float> mWarmthVal { 0.733622f };
-    std::atomic<float> mSharpnessVal { 0.4321724f };
-
 private:
+    // Parameter tree state for automation
+    AudioProcessorValueTreeState parameters;
+
+    // Parameter IDs
+    static const String ATTACK_ID;
+    static const String RELEASE_ID;
+    static const String BRIGHTNESS_ID;
+    static const String HARDNESS_ID;
+    static const String DEPTH_ID;
+    static const String ROUGHNESS_ID;
+    static const String BOOMINESS_ID;
+    static const String WARMTH_ID;
+    static const String SHARPNESS_ID;
+
+    AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     std::unique_ptr<ThreadPool> mThreadPool;
     mutable CriticalSection mMutex;
 
-    juce::FileChooser chooser { " Please Load a Model ", juce::File{}, "*.onnx" };
     File mModelFile;
-
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewPluginTemplateAudioProcessor)

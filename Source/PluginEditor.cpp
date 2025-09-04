@@ -15,18 +15,15 @@ NewPluginTemplateAudioProcessorEditor::NewPluginTemplateAudioProcessorEditor (Ne
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    mLoadButton.onClick = [&]() { audioProcessor.loadFile(); };
     mPlayButton.onClick = [&]() { audioProcessor.play(); };
     mGenerateButton.onClick = [&]() { audioProcessor.generateSample(); };
-    
-    mLoadButton.setButtonText("Load New Model");
+
     mPlayButton.setButtonText("Play");
     mGenerateButton.setButtonText("Generate");
-    
-    addAndMakeVisible(mLoadButton);
+
     addAndMakeVisible(mPlayButton);
     addAndMakeVisible(mGenerateButton);
-    
+
     mLabels[params::attack].setText("Attack", NotificationType::dontSendNotification);
     mLabels[params::release].setText("Release", NotificationType::dontSendNotification);
     mLabels[params::brightness].setText("Brightness", NotificationType::dontSendNotification);
@@ -36,18 +33,19 @@ NewPluginTemplateAudioProcessorEditor::NewPluginTemplateAudioProcessorEditor (Ne
     mLabels[params::boominess].setText("Boominess", NotificationType::dontSendNotification);
     mLabels[params::warmth].setText("Warmth", NotificationType::dontSendNotification);
     mLabels[params::sharpness].setText("Sharpness", NotificationType::dontSendNotification);
-    
+
     for (int i = 0 ; i < params::totalParams; ++i) {
         mSliders[i].setSliderStyle(Slider::SliderStyle::LinearHorizontal);
         mSliders[i].setRange(Range<double> {0.0, 1.0}, 0.001);
-        mSliders[i].setDoubleClickReturnValue(true, paramDefaultValues[i]);
-        mSliders[i].setValue(paramDefaultValues[i]);
         addAndMakeVisible(mSliders[i]);
         addAndMakeVisible(mLabels[i]);
-        mSliders[i].addListener(this);
+
+        // Create parameter attachments to connect sliders to parameters
+        String paramID = audioProcessor.getParameterID(i);
+        mSliderAttachments[i] = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(
+            audioProcessor.getValueTreeState(), paramID, mSliders[i]);
     }
-    
-    
+
     setSize (600, 400);
 }
 
@@ -71,13 +69,12 @@ void NewPluginTemplateAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
-    mLoadButton.setBoundsRelative(0.075f, 0.8f, 0.25f, 0.125f);
-    mGenerateButton.setBoundsRelative(0.375f, 0.8f, 0.25f, 0.125f);
-    mPlayButton.setBoundsRelative(0.675f, 0.8f, 0.25f, 0.125f);
-    
+    mGenerateButton.setBoundsRelative(0.225f, 0.8f, 0.25f, 0.125f);
+    mPlayButton.setBoundsRelative(0.525f, 0.8f, 0.25f, 0.125f);
+
     Rectangle<float> boundsSliders { 0.075f, 0.125f, 0.75f, 0.8f };
     Rectangle<float> boundsLabels { 0.825f, 0.125f, 0.125f, 0.8f };
-    
+
     for (int i = 0 ; i < params::totalParams; ++i) {
         Rectangle<float> sliderRect = boundsSliders.removeFromTop(0.07f);
         Rectangle<float> labelRect = boundsLabels.removeFromTop(0.07f);
@@ -88,53 +85,6 @@ void NewPluginTemplateAudioProcessorEditor::resized()
 
 void NewPluginTemplateAudioProcessorEditor::sliderValueChanged (Slider* slider)
 {
-    if (slider == &mSliders[params::attack])
-    {
-        const float value = slider->getValue();
-        audioProcessor.mAttackVal.store(value);
-    }
-    else if (slider == &mSliders[params::release])
-    {
-        const float value = slider->getValue();
-        audioProcessor.mReleaseVal.store(value);
-    }
-    else if (slider == &mSliders[params::brightness])
-    {
-        const float value = slider->getValue();
-        audioProcessor.mBrightnessVal.store(value);
-    }
-    else if (slider == &mSliders[params::hardness])
-    {
-        const float value = slider->getValue();
-        audioProcessor.mHardnessVal.store(value);
-    }
-    else if (slider == &mSliders[params::depth])
-    {
-        const float value = slider->getValue();
-        audioProcessor.mDepthVal.store(value);
-    }
-    else if (slider == &mSliders[params::roughness])
-    {
-        const float value = slider->getValue();
-        audioProcessor.mRoughnessVal.store(value);
-    }
-    else if (slider == &mSliders[params::boominess])
-    {
-        const float value = slider->getValue();
-        audioProcessor.mBoominessVal.store(value);
-    }
-    else if (slider == &mSliders[params::warmth])
-    {
-        const float value = slider->getValue();
-        audioProcessor.mWarmthVal.store(value);
-    }
-    else if (slider == &mSliders[params::sharpness])
-    {
-        const float value = slider->getValue();
-        audioProcessor.mSharpnessVal.store(value);
-    }
-    else
-    {
-        return;
-    }
+    // Parameter changes are now handled automatically by the AudioProcessorValueTreeState
+    // attachments, so this method is no longer needed for parameter updates
 }

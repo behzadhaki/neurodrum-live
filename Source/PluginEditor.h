@@ -2,8 +2,6 @@
 
 #include "PluginProcessor.h"
 
-
-
 class NewPluginTemplateAudioProcessorEditor  : public juce::AudioProcessorEditor, public Slider::Listener
 {
 public:
@@ -19,13 +17,10 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     NewPluginTemplateAudioProcessor& audioProcessor;
-    
-    juce::TextButton mLoadButton;
+
     juce::TextButton mPlayButton;
     juce::TextButton mGenerateButton;
-    
-    std::vector<float> paramDefaultValues { 0.1f, 0.9f, 0.46533436f, 0.6132435f, 0.6906892f, 0.5227648f, 0.6955591f, 0.733622f, 0.4321724f };
-    
+
     enum params
     {
         attack = 0,
@@ -39,9 +34,10 @@ private:
         sharpness,
         totalParams
     };
-    
+
     Slider mSliders[params::totalParams];
     Label mLabels[params::totalParams];
+    std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> mSliderAttachments[params::totalParams];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewPluginTemplateAudioProcessorEditor)
 };

@@ -3,7 +3,16 @@
 #include "AudioBufferSampler.h"
 #include "ModelPathConfig.h"
 
-
+// Parameter ID constants
+const String NewPluginTemplateAudioProcessor::ATTACK_ID = "attack";
+const String NewPluginTemplateAudioProcessor::RELEASE_ID = "release";
+const String NewPluginTemplateAudioProcessor::BRIGHTNESS_ID = "brightness";
+const String NewPluginTemplateAudioProcessor::HARDNESS_ID = "hardness";
+const String NewPluginTemplateAudioProcessor::DEPTH_ID = "depth";
+const String NewPluginTemplateAudioProcessor::ROUGHNESS_ID = "roughness";
+const String NewPluginTemplateAudioProcessor::BOOMINESS_ID = "boominess";
+const String NewPluginTemplateAudioProcessor::WARMTH_ID = "warmth";
+const String NewPluginTemplateAudioProcessor::SHARPNESS_ID = "sharpness";
 
 NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -14,7 +23,7 @@ NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
 #endif
                                  .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-)
+), parameters(*this, nullptr, "Parameters", createParameterLayout())
 #endif
 {
     mSampler.addVoice(new AudioBufferSamplerVoice());
@@ -52,6 +61,50 @@ NewPluginTemplateAudioProcessor::~NewPluginTemplateAudioProcessor()
 {
 }
 
+AudioProcessorValueTreeState::ParameterLayout NewPluginTemplateAudioProcessor::createParameterLayout()
+{
+    std::vector<std::unique_ptr<RangedAudioParameter>> params;
+
+    params.push_back(std::make_unique<AudioParameterFloat>(ATTACK_ID, "Attack", 0.0f, 1.0f, 0.1f));
+    params.push_back(std::make_unique<AudioParameterFloat>(RELEASE_ID, "Release", 0.0f, 1.0f, 0.9f));
+    params.push_back(std::make_unique<AudioParameterFloat>(BRIGHTNESS_ID, "Brightness", 0.0f, 1.0f, 0.46533436f));
+    params.push_back(std::make_unique<AudioParameterFloat>(HARDNESS_ID, "Hardness", 0.0f, 1.0f, 0.6132435f));
+    params.push_back(std::make_unique<AudioParameterFloat>(DEPTH_ID, "Depth", 0.0f, 1.0f, 0.6906892f));
+    params.push_back(std::make_unique<AudioParameterFloat>(ROUGHNESS_ID, "Roughness", 0.0f, 1.0f, 0.5227648f));
+    params.push_back(std::make_unique<AudioParameterFloat>(BOOMINESS_ID, "Boominess", 0.0f, 1.0f, 0.6955591f));
+    params.push_back(std::make_unique<AudioParameterFloat>(WARMTH_ID, "Warmth", 0.0f, 1.0f, 0.733622f));
+    params.push_back(std::make_unique<AudioParameterFloat>(SHARPNESS_ID, "Sharpness", 0.0f, 1.0f, 0.4321724f));
+
+    return { params.begin(), params.end() };
+}
+
+String NewPluginTemplateAudioProcessor::getParameterID(int paramIndex)
+{
+    switch (paramIndex)
+    {
+        case 0: return ATTACK_ID;
+        case 1: return RELEASE_ID;
+        case 2: return BRIGHTNESS_ID;
+        case 3: return HARDNESS_ID;
+        case 4: return DEPTH_ID;
+        case 5: return ROUGHNESS_ID;
+        case 6: return BOOMINESS_ID;
+        case 7: return WARMTH_ID;
+        case 8: return SHARPNESS_ID;
+        default: return "";
+    }
+}
+
+float NewPluginTemplateAudioProcessor::getParameterValue(int paramIndex)
+{
+    String paramID = getParameterID(paramIndex);
+    if (paramID.isNotEmpty())
+    {
+        return parameters.getRawParameterValue(paramID)->load();
+    }
+    return 0.0f;
+}
+
 //==============================================================================
 const juce::String NewPluginTemplateAudioProcessor::getName() const
 {
@@ -60,8 +113,6 @@ const juce::String NewPluginTemplateAudioProcessor::getName() const
 
 bool NewPluginTemplateAudioProcessor::acceptsMidi() const
 {
-
-
    #if JucePlugin_WantsMidiInput
     return true;
    #else
@@ -164,9 +215,8 @@ void NewPluginTemplateAudioProcessor::processBlock (juce::AudioBuffer<float>& bu
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-    
-    mSampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 
+    mSampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 }
 
 //==============================================================================
@@ -183,15 +233,20 @@ juce::AudioProcessorEditor* NewPluginTemplateAudioProcessor::createEditor()
 //==============================================================================
 void NewPluginTemplateAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    // Save the parameter state
+    auto state = parameters.copyState();
+    std::unique_ptr<XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, destData);
 }
 
 void NewPluginTemplateAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    // Restore the parameter state
+    std::unique_ptr<XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName(parameters.state.getType()))
+            parameters.replaceState(ValueTree::fromXml(*xmlState));
 }
 
 //==============================================================================
@@ -204,23 +259,6 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 void NewPluginTemplateAudioProcessor::play()
 {
     mSampler.noteOn(1, 60, 1.f);
-}
-
-void NewPluginTemplateAudioProcessor::loadFile()
-{
-    auto chooserFlags = juce::FileBrowserComponent::openMode
-                      | juce::FileBrowserComponent::canSelectFiles;
-
-    chooser.launchAsync (chooserFlags, [this] (const juce::FileChooser& fc)
-    {
-        auto file = fc.getResult();
-
-        if (file == juce::File{})
-            return;
-        
-        mModelFile = file;
-
-    });
 }
 
 void NewPluginTemplateAudioProcessor::generateSample()
@@ -238,5 +276,3 @@ const File NewPluginTemplateAudioProcessor::getModelFile()
 {
     return mModelFile;
 }
-
-
