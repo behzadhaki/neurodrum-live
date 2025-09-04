@@ -32,17 +32,13 @@ NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
     mThreadPool = std::make_unique<ThreadPool>(1);
 
 #ifdef _WIN32
-    // On Windows, model is in the VST3 directory, not inside the bundle
     String vst3Dir = String(std::getenv("APPDATA")) + "\\VST3\\";
     mModelFile = File(vst3Dir + "log_kicks_full.onnx");
 #else
-    // On macOS, model is inside the VST3 bundle as before
     File pluginBundle = File::getSpecialLocation(File::currentExecutableFile);
-
     while (pluginBundle.exists() && !pluginBundle.getFileName().endsWith(".vst3")) {
         pluginBundle = pluginBundle.getParentDirectory();
     }
-
     mModelFile = pluginBundle.getChildFile("Contents").getChildFile("Resources").getChildFile("log_kicks_full.onnx");
 #endif
 
@@ -55,6 +51,9 @@ NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
     {
         std::cout << "Model file exists at: " << mModelFile.getFullPathName() << std::endl;
     }
+
+    // 🔄 Start parameter polling
+    startParamPolling();
 }
 
 NewPluginTemplateAudioProcessor::~NewPluginTemplateAudioProcessor()
@@ -261,16 +260,39 @@ void NewPluginTemplateAudioProcessor::play()
     mSampler.noteOn(1, 60, 1.f);
 }
 
-void NewPluginTemplateAudioProcessor::generateSample()
+void NewPluginTemplateAudioProcessor::startParamPolling()
 {
-    juce::ScopedLock irCalculationlock(mMutex);
-    if (mThreadPool)
-    {
-        mThreadPool->removeAllJobs(true, 1000);
-    }
-
-    mThreadPool->addJob(new InferenceThreadJob(*this), true);
+    mLastParams.resize(9, -1.0f); // init with invalid values
+    startTimerHz(50); // 50 Hz = every 20 ms
 }
+
+void NewPluginTemplateAudioProcessor::timerCallback()
+{
+    std::vector<float> current(9);
+    for (int i = 0; i < 9; ++i)
+        current[i] = getParameterValue(i);
+
+    if (current != mLastParams)
+    {
+        mLastParams = current;
+        mParamQueue.push(current);
+
+        if (mThreadPool)
+            mThreadPool->addJob(new InferenceThreadJob(*this), true);
+    }
+}
+
+
+// void NewPluginTemplateAudioProcessor::generateSample()
+// {
+//     juce::ScopedLock irCalculationlock(mMutex);
+//     if (mThreadPool)
+//     {
+//         mThreadPool->removeAllJobs(true, 1000);
+//     }
+//
+//     mThreadPool->addJob(new InferenceThreadJob(*this), true);
+// }
 
 const File NewPluginTemplateAudioProcessor::getModelFile()
 {

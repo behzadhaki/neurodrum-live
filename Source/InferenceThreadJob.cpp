@@ -54,16 +54,20 @@ auto InferenceThreadJob::runJob() -> JobStatus
         return JobStatus::jobHasFinished;
     }
 
-    // Get parameter values from the parameter tree state
-    const float attackVal = mProcessor.getParameterValue(0);  // attack
-    const float releaseVal = mProcessor.getParameterValue(1); // release
-    const float brightnessVal = mProcessor.getParameterValue(2); // brightness
-    const float hardnessVal = mProcessor.getParameterValue(3); // hardness
-    const float depthVal = mProcessor.getParameterValue(4); // depth
-    const float roughnessVal = mProcessor.getParameterValue(5); // roughness
-    const float boominessVal = mProcessor.getParameterValue(6); // boominess
-    const float warmthVal = mProcessor.getParameterValue(7); // warmth
-    const float sharpnessVal = mProcessor.getParameterValue(8); // sharpness
+    auto params = mProcessor.mParamQueue.getLatestOnly();
+    if (params.empty())
+        return JobStatus::jobHasFinished;
+
+    const float attackVal     = params[0];
+    const float releaseVal    = params[1];
+    const float brightnessVal = params[2];
+    const float hardnessVal   = params[3];
+    const float depthVal      = params[4];
+    const float roughnessVal  = params[5];
+    const float boominessVal  = params[6];
+    const float warmthVal     = params[7];
+    const float sharpnessVal  = params[8];
+
 
     if (shouldExit())
     {

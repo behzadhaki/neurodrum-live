@@ -16,7 +16,7 @@ NewPluginTemplateAudioProcessorEditor::NewPluginTemplateAudioProcessorEditor (Ne
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     mPlayButton.onClick = [&]() { audioProcessor.play(); };
-    mGenerateButton.onClick = [&]() { audioProcessor.generateSample(); };
+    // mGenerateButton.onClick = [&]() { audioProcessor.generateSample(); };
 
     mPlayButton.setButtonText("Play");
     mGenerateButton.setButtonText("Generate");

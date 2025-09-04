@@ -3,10 +3,12 @@
 #include "Parameters.h"
 #include "onnxruntime_c_api.h"
 #include "InferenceThreadJob.h"
+#include "LockFreeQueue.h"
 
 using namespace juce;
 
-class NewPluginTemplateAudioProcessor : public PluginHelpers::ProcessorBase
+class NewPluginTemplateAudioProcessor : public PluginHelpers::ProcessorBase,
+                                        private juce::Timer
 {
 public:
     NewPluginTemplateAudioProcessor();
@@ -45,7 +47,6 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    void generateSample();
     void play();
     const File getModelFile();
 
@@ -55,6 +56,13 @@ public:
     float getParameterValue(int paramIndex);
 
     juce::Synthesiser mSampler;
+
+    // Param polling
+    void timerCallback() override;
+    void startParamPolling();
+
+    // Lockfree queue with latest params
+    StaticLockFreeQueue<std::vector<float>, 32> mParamQueue;
 
 private:
     // Parameter tree state for automation
@@ -77,6 +85,9 @@ private:
     mutable CriticalSection mMutex;
 
     File mModelFile;
+
+    // last snapshot to detect changes
+    std::vector<float> mLastParams;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewPluginTemplateAudioProcessor)
