@@ -7,7 +7,7 @@ class SpectrogramVisualizer : public juce::Component
 {
 public:
     SpectrogramVisualizer();
-    ~SpectrogramVisualizer() override = default;
+    ~SpectrogramVisualizer() override;
 
     void setBuffer(const juce::AudioSampleBuffer& newBuffer);
     void paint(juce::Graphics& g) override;

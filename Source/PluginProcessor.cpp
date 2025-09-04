@@ -3,16 +3,27 @@
 #include "AudioBufferSampler.h"
 #include "ModelPathConfig.h"
 
-// Parameter ID constants
-const String NewPluginTemplateAudioProcessor::ATTACK_ID = "attack";
-const String NewPluginTemplateAudioProcessor::RELEASE_ID = "release";
-const String NewPluginTemplateAudioProcessor::BRIGHTNESS_ID = "brightness";
-const String NewPluginTemplateAudioProcessor::HARDNESS_ID = "hardness";
-const String NewPluginTemplateAudioProcessor::DEPTH_ID = "depth";
-const String NewPluginTemplateAudioProcessor::ROUGHNESS_ID = "roughness";
-const String NewPluginTemplateAudioProcessor::BOOMINESS_ID = "boominess";
-const String NewPluginTemplateAudioProcessor::WARMTH_ID = "warmth";
-const String NewPluginTemplateAudioProcessor::SHARPNESS_ID = "sharpness";
+// Parameter ID constants - Left Channel
+const String NewPluginTemplateAudioProcessor::ATTACK_L_ID = "attackL";
+const String NewPluginTemplateAudioProcessor::RELEASE_L_ID = "releaseL";
+const String NewPluginTemplateAudioProcessor::BRIGHTNESS_L_ID = "brightnessL";
+const String NewPluginTemplateAudioProcessor::HARDNESS_L_ID = "hardnessL";
+const String NewPluginTemplateAudioProcessor::DEPTH_L_ID = "depthL";
+const String NewPluginTemplateAudioProcessor::ROUGHNESS_L_ID = "roughnessL";
+const String NewPluginTemplateAudioProcessor::BOOMINESS_L_ID = "boominessL";
+const String NewPluginTemplateAudioProcessor::WARMTH_L_ID = "warmthL";
+const String NewPluginTemplateAudioProcessor::SHARPNESS_L_ID = "sharpnessL";
+
+// Parameter ID constants - Right Channel
+const String NewPluginTemplateAudioProcessor::ATTACK_R_ID = "attackR";
+const String NewPluginTemplateAudioProcessor::RELEASE_R_ID = "releaseR";
+const String NewPluginTemplateAudioProcessor::BRIGHTNESS_R_ID = "brightnessR";
+const String NewPluginTemplateAudioProcessor::HARDNESS_R_ID = "hardnessR";
+const String NewPluginTemplateAudioProcessor::DEPTH_R_ID = "depthR";
+const String NewPluginTemplateAudioProcessor::ROUGHNESS_R_ID = "roughnessR";
+const String NewPluginTemplateAudioProcessor::BOOMINESS_R_ID = "boominessR";
+const String NewPluginTemplateAudioProcessor::WARMTH_R_ID = "warmthR";
+const String NewPluginTemplateAudioProcessor::SHARPNESS_R_ID = "sharpnessR";
 
 NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -55,29 +66,48 @@ NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
         std::cout << "Model file exists at: " << mModelFile.getFullPathName() << std::endl;
     }
 
-    // Start parameter polling
-    mParamQueue = std::make_unique<DynamicLockFreeQueue<std::vector<float>, 32>>();
+    // Start parameter polling - now with 18 parameters
     startParamPolling();
-
 }
 
 NewPluginTemplateAudioProcessor::~NewPluginTemplateAudioProcessor()
 {
+    mIsBeingDestroyed = true;
+    stopTimer();
+
+    if (mThreadPool)
+    {
+        mThreadPool->removeAllJobs(true, 1000);
+        mThreadPool.reset();
+    }
 }
+
 
 AudioProcessorValueTreeState::ParameterLayout NewPluginTemplateAudioProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<RangedAudioParameter>> params;
 
-    params.push_back(std::make_unique<AudioParameterFloat>(ATTACK_ID, "Attack", 0.0f, 1.0f, 0.1f));
-    params.push_back(std::make_unique<AudioParameterFloat>(RELEASE_ID, "Release", 0.0f, 1.0f, 0.9f));
-    params.push_back(std::make_unique<AudioParameterFloat>(BRIGHTNESS_ID, "Brightness", 0.0f, 1.0f, 0.46533436f));
-    params.push_back(std::make_unique<AudioParameterFloat>(HARDNESS_ID, "Hardness", 0.0f, 1.0f, 0.6132435f));
-    params.push_back(std::make_unique<AudioParameterFloat>(DEPTH_ID, "Depth", 0.0f, 1.0f, 0.6906892f));
-    params.push_back(std::make_unique<AudioParameterFloat>(ROUGHNESS_ID, "Roughness", 0.0f, 1.0f, 0.5227648f));
-    params.push_back(std::make_unique<AudioParameterFloat>(BOOMINESS_ID, "Boominess", 0.0f, 1.0f, 0.6955591f));
-    params.push_back(std::make_unique<AudioParameterFloat>(WARMTH_ID, "Warmth", 0.0f, 1.0f, 0.733622f));
-    params.push_back(std::make_unique<AudioParameterFloat>(SHARPNESS_ID, "Sharpness", 0.0f, 1.0f, 0.4321724f));
+    // Left Channel Parameters
+    params.push_back(std::make_unique<AudioParameterFloat>(ATTACK_L_ID, "Attack L", 0.0f, 1.0f, 0.1f));
+    params.push_back(std::make_unique<AudioParameterFloat>(RELEASE_L_ID, "Release L", 0.0f, 1.0f, 0.9f));
+    params.push_back(std::make_unique<AudioParameterFloat>(BRIGHTNESS_L_ID, "Brightness L", 0.0f, 1.0f, 0.46533436f));
+    params.push_back(std::make_unique<AudioParameterFloat>(HARDNESS_L_ID, "Hardness L", 0.0f, 1.0f, 0.6132435f));
+    params.push_back(std::make_unique<AudioParameterFloat>(DEPTH_L_ID, "Depth L", 0.0f, 1.0f, 0.6906892f));
+    params.push_back(std::make_unique<AudioParameterFloat>(ROUGHNESS_L_ID, "Roughness L", 0.0f, 1.0f, 0.5227648f));
+    params.push_back(std::make_unique<AudioParameterFloat>(BOOMINESS_L_ID, "Boominess L", 0.0f, 1.0f, 0.6955591f));
+    params.push_back(std::make_unique<AudioParameterFloat>(WARMTH_L_ID, "Warmth L", 0.0f, 1.0f, 0.733622f));
+    params.push_back(std::make_unique<AudioParameterFloat>(SHARPNESS_L_ID, "Sharpness L", 0.0f, 1.0f, 0.4321724f));
+
+    // Right Channel Parameters
+    params.push_back(std::make_unique<AudioParameterFloat>(ATTACK_R_ID, "Attack R", 0.0f, 1.0f, 0.1f));
+    params.push_back(std::make_unique<AudioParameterFloat>(RELEASE_R_ID, "Release R", 0.0f, 1.0f, 0.9f));
+    params.push_back(std::make_unique<AudioParameterFloat>(BRIGHTNESS_R_ID, "Brightness R", 0.0f, 1.0f, 0.46533436f));
+    params.push_back(std::make_unique<AudioParameterFloat>(HARDNESS_R_ID, "Hardness R", 0.0f, 1.0f, 0.6132435f));
+    params.push_back(std::make_unique<AudioParameterFloat>(DEPTH_R_ID, "Depth R", 0.0f, 1.0f, 0.6906892f));
+    params.push_back(std::make_unique<AudioParameterFloat>(ROUGHNESS_R_ID, "Roughness R", 0.0f, 1.0f, 0.5227648f));
+    params.push_back(std::make_unique<AudioParameterFloat>(BOOMINESS_R_ID, "Boominess R", 0.0f, 1.0f, 0.6955591f));
+    params.push_back(std::make_unique<AudioParameterFloat>(WARMTH_R_ID, "Warmth R", 0.0f, 1.0f, 0.733622f));
+    params.push_back(std::make_unique<AudioParameterFloat>(SHARPNESS_R_ID, "Sharpness R", 0.0f, 1.0f, 0.4321724f));
 
     return { params.begin(), params.end() };
 }
@@ -86,15 +116,27 @@ String NewPluginTemplateAudioProcessor::getParameterID(int paramIndex)
 {
     switch (paramIndex)
     {
-        case 0: return ATTACK_ID;
-        case 1: return RELEASE_ID;
-        case 2: return BRIGHTNESS_ID;
-        case 3: return HARDNESS_ID;
-        case 4: return DEPTH_ID;
-        case 5: return ROUGHNESS_ID;
-        case 6: return BOOMINESS_ID;
-        case 7: return WARMTH_ID;
-        case 8: return SHARPNESS_ID;
+        // Left Channel
+        case 0: return ATTACK_L_ID;
+        case 1: return RELEASE_L_ID;
+        case 2: return BRIGHTNESS_L_ID;
+        case 3: return HARDNESS_L_ID;
+        case 4: return DEPTH_L_ID;
+        case 5: return ROUGHNESS_L_ID;
+        case 6: return BOOMINESS_L_ID;
+        case 7: return WARMTH_L_ID;
+        case 8: return SHARPNESS_L_ID;
+
+        // Right Channel
+        case 9: return ATTACK_R_ID;
+        case 10: return RELEASE_R_ID;
+        case 11: return BRIGHTNESS_R_ID;
+        case 12: return HARDNESS_R_ID;
+        case 13: return DEPTH_R_ID;
+        case 14: return ROUGHNESS_R_ID;
+        case 15: return BOOMINESS_R_ID;
+        case 16: return WARMTH_R_ID;
+        case 17: return SHARPNESS_R_ID;
         default: return "";
     }
 }
@@ -149,8 +191,7 @@ double NewPluginTemplateAudioProcessor::getTailLengthSeconds() const
 
 int NewPluginTemplateAudioProcessor::getNumPrograms()
 {
-    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
-                // so this should be at least 1, even if you're not really implementing programs.
+    return 1;
 }
 
 int NewPluginTemplateAudioProcessor::getCurrentProgram()
@@ -174,15 +215,11 @@ void NewPluginTemplateAudioProcessor::changeProgramName (int index, const juce::
 //==============================================================================
 void NewPluginTemplateAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
     mSampler.setCurrentPlaybackSampleRate(sampleRate);
 }
 
 void NewPluginTemplateAudioProcessor::releaseResources()
 {
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -192,15 +229,10 @@ bool NewPluginTemplateAudioProcessor::isBusesLayoutSupported (const BusesLayout&
     juce::ignoreUnused (layouts);
     return true;
   #else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    // Some plugin hosts, such as certain GarageBand versions, will only
-    // load plugins that support stereo bus layouts.
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
      && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
 
-    // This checks if the input layout matches the output layout
    #if ! JucePlugin_IsSynth
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
@@ -226,7 +258,7 @@ void NewPluginTemplateAudioProcessor::processBlock (juce::AudioBuffer<float>& bu
 //==============================================================================
 bool NewPluginTemplateAudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return true;
 }
 
 juce::AudioProcessorEditor* NewPluginTemplateAudioProcessor::createEditor()
@@ -237,7 +269,6 @@ juce::AudioProcessorEditor* NewPluginTemplateAudioProcessor::createEditor()
 //==============================================================================
 void NewPluginTemplateAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // Save the parameter state
     auto state = parameters.copyState();
     std::unique_ptr<XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
@@ -245,7 +276,6 @@ void NewPluginTemplateAudioProcessor::getStateInformation (juce::MemoryBlock& de
 
 void NewPluginTemplateAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // Restore the parameter state
     std::unique_ptr<XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
 
     if (xmlState.get() != nullptr)
@@ -254,7 +284,6 @@ void NewPluginTemplateAudioProcessor::setStateInformation (const void* data, int
 }
 
 //==============================================================================
-// This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new NewPluginTemplateAudioProcessor();
@@ -267,14 +296,14 @@ void NewPluginTemplateAudioProcessor::play()
 
 void NewPluginTemplateAudioProcessor::startParamPolling()
 {
-    mLastParams.resize(9, -1.0f); // init with invalid values
+    mLastParams.resize(18, -1.0f); // init with invalid values for 18 parameters
     startTimerHz(50); // 50 Hz = every 20 ms
 }
 
 void NewPluginTemplateAudioProcessor::timerCallback()
 {
-    std::vector<float> current(9);
-    for (int i = 0; i < 9; ++i)
+    std::vector<float> current(18);
+    for (int i = 0; i < 18; ++i)
         current[i] = getParameterValue(i);
 
     if (current != mLastParams)
@@ -287,18 +316,6 @@ void NewPluginTemplateAudioProcessor::timerCallback()
             mThreadPool->addJob(new InferenceThreadJob(*this), true);
     }
 }
-
-
-// void NewPluginTemplateAudioProcessor::generateSample()
-// {
-//     juce::ScopedLock irCalculationlock(mMutex);
-//     if (mThreadPool)
-//     {
-//         mThreadPool->removeAllJobs(true, 1000);
-//     }
-//
-//     mThreadPool->addJob(new InferenceThreadJob(*this), true);
-// }
 
 const File NewPluginTemplateAudioProcessor::getModelFile()
 {

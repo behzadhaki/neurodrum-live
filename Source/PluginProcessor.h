@@ -61,24 +61,37 @@ public:
     void timerCallback() override;
     void startParamPolling();
 
-    // Lockfree queue with latest params
+    // Lockfree queue with latest params (now stereo - 18 params total)
     std::unique_ptr<DynamicLockFreeQueue<std::vector<float>, 32>> mParamQueue;
     std::unique_ptr<DynamicLockFreeQueue<juce::AudioBuffer<float>, 8>> mAudioBufferQueue;
+
+    std::atomic<bool> mIsBeingDestroyed{false};
 
 private:
     // Parameter tree state for automation
     AudioProcessorValueTreeState parameters;
 
-    // Parameter IDs
-    static const String ATTACK_ID;
-    static const String RELEASE_ID;
-    static const String BRIGHTNESS_ID;
-    static const String HARDNESS_ID;
-    static const String DEPTH_ID;
-    static const String ROUGHNESS_ID;
-    static const String BOOMINESS_ID;
-    static const String WARMTH_ID;
-    static const String SHARPNESS_ID;
+    // Parameter IDs - Left Channel
+    static const String ATTACK_L_ID;
+    static const String RELEASE_L_ID;
+    static const String BRIGHTNESS_L_ID;
+    static const String HARDNESS_L_ID;
+    static const String DEPTH_L_ID;
+    static const String ROUGHNESS_L_ID;
+    static const String BOOMINESS_L_ID;
+    static const String WARMTH_L_ID;
+    static const String SHARPNESS_L_ID;
+
+    // Parameter IDs - Right Channel
+    static const String ATTACK_R_ID;
+    static const String RELEASE_R_ID;
+    static const String BRIGHTNESS_R_ID;
+    static const String HARDNESS_R_ID;
+    static const String DEPTH_R_ID;
+    static const String ROUGHNESS_R_ID;
+    static const String BOOMINESS_R_ID;
+    static const String WARMTH_R_ID;
+    static const String SHARPNESS_R_ID;
 
     AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
@@ -87,7 +100,7 @@ private:
 
     File mModelFile;
 
-    // last snapshot to detect changes
+    // last snapshot to detect changes (now 18 params)
     std::vector<float> mLastParams;
 
     //==============================================================================
