@@ -13,32 +13,38 @@ public:
     void paint(juce::Graphics& g) override
     {
         auto bounds = getLocalBounds().toFloat();
-        float radius = bounds.getHeight() * 0.5f;
+        float cornerRadius = bounds.getHeight() * 0.5f;
 
-        // background bar
+        // --- background bar ---
         g.setColour(juce::Colours::darkgrey);
-        g.fillRoundedRectangle(bounds, radius);
+        g.fillRoundedRectangle(bounds, cornerRadius);
 
-        // active fill
+        // --- active fill with gradient ---
         auto proportion = (float) juce::jlimit(0.0, 1.0, (double) getValue());
         auto activeWidth = bounds.getWidth() * proportion;
         juce::Rectangle<float> activeRect(bounds.getX(), bounds.getY(), activeWidth, bounds.getHeight());
 
-        g.setColour(juce::Colours::white);
-        g.fillRoundedRectangle(activeRect, radius);
+        juce::ColourGradient grad(juce::Colours::white, activeRect.getX(), activeRect.getCentreY(),
+                                  juce::Colours::black, activeRect.getRight(), activeRect.getCentreY(),
+                                  false);
+        g.setGradientFill(grad);
+        g.fillRoundedRectangle(activeRect, cornerRadius);
 
-        // thumb
-        float thumbX = bounds.getX() + activeWidth;
-        float thumbRadius = bounds.getHeight() * 0.8f;
-        float center = bounds.getCentreY() - thumbRadius * 0.5f;
+        // --- thumb (oval, fills vertical space) ---
+        float thumbX = activeRect.getRight();
+        float thumbWidth  = bounds.getHeight() * 0.6f;     // oval width
+        float thumbHeight = bounds.getHeight() * 1.2f;     // oval taller
+        float thumbY = bounds.getCentreY() - thumbHeight * 0.5f;
 
-        g.setColour(juce::Colours::white);
-        g.fillEllipse(thumbX - thumbRadius * 0.5f, center, thumbRadius, thumbRadius);
+        g.setColour(juce::Colours::lightgrey);
+        g.fillEllipse(thumbX - thumbWidth * 0.5f, thumbY, thumbWidth, thumbHeight);
 
-        g.setColour(juce::Colours::black);
-        g.fillEllipse(thumbX - 4, bounds.getCentreY() - 4, 8, 8);
+        // inner marker dot
+        // g.setColour(juce::Colours::black);
+        // g.fillEllipse(thumbX - 4, bounds.getCentreY() - 4, 8, 8);
     }
 };
+
 
 // ================== Editor ==================
 class NewPluginTemplateAudioProcessorEditor  : public juce::AudioProcessorEditor

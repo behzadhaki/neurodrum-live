@@ -34,7 +34,6 @@ auto InferenceThreadJob::runJob() -> JobStatus
 
     File modelFile = mProcessor.getModelFile();
     String juceModelPath = modelFile.getFullPathName();
-    std::cout << "Generating " << std::endl;
 
    #ifdef _WIN32
     std::wstring wide_path = juceModelPath.toWideCharPointer();
@@ -54,7 +53,6 @@ auto InferenceThreadJob::runJob() -> JobStatus
     std::vector<float> params;
     if (mProcessor.mParamQueue && mProcessor.mParamQueue->getNumReady() > 0)
     {
-        std::cout << "Params in queue: " << mProcessor.mParamQueue->getNumReady() << std::endl;
         params = mProcessor.mParamQueue->getLatestOnly();
     }
 
