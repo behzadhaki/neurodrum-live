@@ -60,62 +60,49 @@ void SpectrogramVisualizer::computeFFT()
     if (buffer.getNumSamples() < fftSize)
         return;
 
-    int numChannels = std::min(buffer.getNumChannels(), 2); // Support up to stereo
+    int numChannels = std::min(buffer.getNumChannels(), 2);
+
+    auto computeChannel = [&](int channel, std::vector<float>& outSpectrum)
+    {
+        std::vector<float> fftData(fftSize * 2, 0.0f);
+
+        for (int i = 0; i < fftSize; ++i)
+            fftData[i] = buffer.getSample(channel, i);
+
+        window.multiplyWithWindowingTable(fftData.data(), fftSize);
+        fft.performRealOnlyForwardTransform(fftData.data());
+
+        outSpectrum.resize(fftSize / 2);
+        for (int bin = 0; bin < fftSize / 2; ++bin)
+        {
+            float re = fftData[2 * bin];
+            float im = fftData[2 * bin + 1];
+            float mag = std::sqrt(re * re + im * im);
+
+            // Convert to dB
+            float db = juce::Decibels::gainToDecibels(mag + 1e-6f, -60.0f);
+            // Map into 0..1 (relative to -60..0dB window)
+            float norm = juce::jmap(db, -60.0f, 0.0f, 0.0f, 1.0f);
+
+            outSpectrum[bin] = std::max(0.0f, norm);
+        }
+
+        // --- Rescale so the max = 1 ---
+        float maxVal = *std::max_element(outSpectrum.begin(), outSpectrum.end());
+        if (maxVal > 0.0f)
+        {
+            for (auto& v : outSpectrum)
+                v /= maxVal;
+        }
+    };
 
     if (numChannels >= 1)
-    {
-        // Compute FFT for left channel (or mono)
-        std::vector<float> fftDataLeft(fftSize * 2, 0.0f);
-
-        for (int i = 0; i < fftSize; ++i)
-            fftDataLeft[i] = buffer.getSample(0, i);
-
-        window.multiplyWithWindowingTable(fftDataLeft.data(), fftSize);
-        fft.performRealOnlyForwardTransform(fftDataLeft.data());
-
-        leftMagnitudeSpectrum.resize(fftSize / 2);
-        for (int bin = 0; bin < fftSize / 2; ++bin)
-        {
-            float re = fftDataLeft[2 * bin];
-            float im = fftDataLeft[2 * bin + 1];
-            float mag = std::sqrt(re * re + im * im);
-
-            float db = juce::Decibels::gainToDecibels(mag + 1e-6f, -60.0f);
-            float norm = juce::jmap(db, -60.0f, 0.0f, 0.0f, 1.0f);
-
-            leftMagnitudeSpectrum[bin] = juce::jlimit(0.0f, 1.0f, norm);
-        }
-    }
+        computeChannel(0, leftMagnitudeSpectrum);
 
     if (numChannels >= 2)
-    {
-        // Compute FFT for right channel
-        std::vector<float> fftDataRight(fftSize * 2, 0.0f);
-
-        for (int i = 0; i < fftSize; ++i)
-            fftDataRight[i] = buffer.getSample(1, i);
-
-        window.multiplyWithWindowingTable(fftDataRight.data(), fftSize);
-        fft.performRealOnlyForwardTransform(fftDataRight.data());
-
-        rightMagnitudeSpectrum.resize(fftSize / 2);
-        for (int bin = 0; bin < fftSize / 2; ++bin)
-        {
-            float re = fftDataRight[2 * bin];
-            float im = fftDataRight[2 * bin + 1];
-            float mag = std::sqrt(re * re + im * im);
-
-            float db = juce::Decibels::gainToDecibels(mag + 1e-6f, -60.0f);
-            float norm = juce::jmap(db, -60.0f, 0.0f, 0.0f, 1.0f);
-
-            rightMagnitudeSpectrum[bin] = juce::jlimit(0.0f, 1.0f, norm);
-        }
-    }
+        computeChannel(1, rightMagnitudeSpectrum);
     else
-    {
-        // Mono - copy left to right
         rightMagnitudeSpectrum = leftMagnitudeSpectrum;
-    }
 }
 
 void SpectrogramVisualizer::paint(juce::Graphics& g)
@@ -128,13 +115,13 @@ void SpectrogramVisualizer::paint(juce::Graphics& g)
         return;
 
     // Layout
-    auto waveformArea = bounds.removeFromTop(bounds.getHeight() * 0.33f);
+    auto waveformArea = bounds.removeFromTop(bounds.getHeight() * 0.66f);
     lastWaveformArea = waveformArea;
     auto spectrumArea = bounds;
 
     int numChannels = std::min(buffer.getNumChannels(), 2);
 
-    // --- Draw stereo waveforms (top 1/3) ---
+    // --- Draw stereo waveforms (top 2/3) ---
     g.saveState();
     g.reduceClipRegion(waveformArea.toNearestInt());
 
@@ -194,7 +181,7 @@ void SpectrogramVisualizer::paint(juce::Graphics& g)
         leftSpectrumPath.lineTo(spectrumArea.getRight(), spectrumArea.getBottom());
         leftSpectrumPath.closeSubPath();
 
-        g.setColour(juce::Colours::lightblue.withAlpha(0.6f));
+        g.setColour(juce::Colours::lightblue.withAlpha(0.5f));
         g.fillPath(leftSpectrumPath);
 
         // Right channel spectrum (red) - if stereo

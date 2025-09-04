@@ -2,6 +2,7 @@
 #include "PluginProcessor.h"
 
 // DualThumbSlider Implementation
+// DualThumbSlider Implementation
 DualThumbSlider::DualThumbSlider()
 {
     setSize(200, 30);
@@ -12,39 +13,71 @@ void DualThumbSlider::paint(juce::Graphics& g)
     auto bounds = getLocalBounds().toFloat();
     float cornerRadius = bounds.getHeight() * 0.5f;
 
-    // Background bar
-    g.setColour(juce::Colours::darkgrey);
-    g.fillRoundedRectangle(bounds, cornerRadius);
+    // Background track
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.3f));
+    g.fillRect(bounds);
 
-    // Left channel active fill (blue)
-    float leftPos = getPositionFromValue(leftValue);
-    juce::Rectangle<float> leftRect(bounds.getX(), bounds.getY(), leftPos, bounds.getHeight() * 0.5f);
-    juce::ColourGradient leftGrad(juce::Colours::lightblue.withAlpha(0.7f), leftRect.getX(), leftRect.getCentreY(),
-                                  juce::Colours::blue.withAlpha(0.7f), leftRect.getRight(), leftRect.getCentreY(), false);
-    g.setGradientFill(leftGrad);
-    g.fillRoundedRectangle(leftRect, cornerRadius);
-
-    // Right channel active fill (red) - bottom half
+    // Thumb positions
+    float leftPos  = getPositionFromValue(leftValue);
     float rightPos = getPositionFromValue(rightValue);
-    juce::Rectangle<float> rightRect(bounds.getX(), bounds.getCentreY(), rightPos, bounds.getHeight() * 0.5f);
-    juce::ColourGradient rightGrad(juce::Colours::lightcoral.withAlpha(0.7f), rightRect.getX(), rightRect.getCentreY(),
-                                   juce::Colours::red.withAlpha(0.7f), rightRect.getRight(), rightRect.getCentreY(), false);
-    g.setGradientFill(rightGrad);
-    g.fillRoundedRectangle(rightRect, cornerRadius);
 
-    // Left thumb (blue) - top position
-    auto leftThumb = getLeftThumbBounds();
-    g.setColour(juce::Colours::lightblue);
-    g.fillEllipse(leftThumb);
-    g.setColour(juce::Colours::blue);
-    g.drawEllipse(leftThumb, 2.0f);
+    // Thin highlighted bar between thumbs
+    float barHeight = bounds.getHeight() * 0.2f;
+    auto rangeRect = juce::Rectangle<float>(std::min(leftPos, rightPos),
+                                            bounds.getCentreY() - barHeight * 0.5f,
+                                            std::abs(rightPos - leftPos),
+                                            barHeight);
 
-    // Right thumb (red) - bottom position
+    // Gradient always: blue → red
+    juce::ColourGradient grad(juce::Colours::lightblue.withAlpha(0.5f), leftPos, bounds.getCentreY(),
+                              juce::Colours::lightcoral.withAlpha(0.5f), rightPos, bounds.getCentreY(), false);
+    g.setGradientFill(grad);
+    g.fillRoundedRectangle(rangeRect, barHeight * 0.5f);
+
+    // ---- Thumbs ----
+    auto leftThumb  = getLeftThumbBounds();
     auto rightThumb = getRightThumbBounds();
-    g.setColour(juce::Colours::lightcoral);
-    g.fillEllipse(rightThumb);
-    g.setColour(juce::Colours::red);
-    g.drawEllipse(rightThumb, 2.0f);
+
+    // Decide orientation: inward-pointing
+    bool leftIsLeftmost = (leftPos <= rightPos);
+
+    // Left thumb (blue)
+    juce::Path leftTri;
+    if (leftIsLeftmost)
+    {
+        // point right (inwards)
+        leftTri.addTriangle(leftThumb.getX(), leftThumb.getY(),
+                            leftThumb.getX(), leftThumb.getBottom(),
+                            leftThumb.getRight(), leftThumb.getCentreY());
+    }
+    else
+    {
+        // point left (inwards)
+        leftTri.addTriangle(leftThumb.getRight(), leftThumb.getY(),
+                            leftThumb.getRight(), leftThumb.getBottom(),
+                            leftThumb.getX(), leftThumb.getCentreY());
+    }
+    g.setColour(juce::Colours::lightblue.withAlpha(0.6f));
+    g.fillPath(leftTri);
+
+    // Right thumb (red)
+    juce::Path rightTri;
+    if (leftIsLeftmost)
+    {
+        // point left (inwards)
+        rightTri.addTriangle(rightThumb.getRight(), rightThumb.getY(),
+                             rightThumb.getRight(), rightThumb.getBottom(),
+                             rightThumb.getX(), rightThumb.getCentreY());
+    }
+    else
+    {
+        // point right (inwards)
+        rightTri.addTriangle(rightThumb.getX(), rightThumb.getY(),
+                             rightThumb.getX(), rightThumb.getBottom(),
+                             rightThumb.getRight(), rightThumb.getCentreY());
+    }
+    g.setColour(juce::Colours::lightcoral.withAlpha(0.6f));
+    g.fillPath(rightTri);
 }
 
 void DualThumbSlider::mouseDown(const juce::MouseEvent& e)
@@ -52,14 +85,10 @@ void DualThumbSlider::mouseDown(const juce::MouseEvent& e)
     auto leftThumb = getLeftThumbBounds();
     auto rightThumb = getRightThumbBounds();
 
-    // Check which thumb is closer to the click
-    float distToLeft = leftThumb.getCentre().getDistanceFrom(e.position);
+    float distToLeft  = leftThumb.getCentre().getDistanceFrom(e.position);
     float distToRight = rightThumb.getCentre().getDistanceFrom(e.position);
 
-    if (distToLeft < distToRight)
-        currentDragMode = DragMode::Left;
-    else
-        currentDragMode = DragMode::Right;
+    currentDragMode = (distToLeft < distToRight) ? DragMode::Left : DragMode::Right;
 }
 
 void DualThumbSlider::mouseDrag(const juce::MouseEvent& e)
@@ -67,17 +96,37 @@ void DualThumbSlider::mouseDrag(const juce::MouseEvent& e)
     float newValue = getValueFromPosition(e.position.x);
     newValue = juce::jlimit(0.0f, 1.0f, newValue);
 
-    if (currentDragMode == DragMode::Left)
+    if (e.mods.isShiftDown())
     {
-        setLeftValue(newValue);
-        if (onLeftValueChanged)
-            onLeftValueChanged(leftValue);
+        // Move both thumbs together preserving offset
+        float offset = rightValue - leftValue;
+
+        if (currentDragMode == DragMode::Left)
+        {
+            setLeftValue(newValue);
+            setRightValue(juce::jlimit(0.0f, 1.0f, newValue + offset));
+        }
+        else if (currentDragMode == DragMode::Right)
+        {
+            setRightValue(newValue);
+            setLeftValue(juce::jlimit(0.0f, 1.0f, newValue - offset));
+        }
+
+        if (onLeftValueChanged)  onLeftValueChanged(leftValue);
+        if (onRightValueChanged) onRightValueChanged(rightValue);
     }
-    else if (currentDragMode == DragMode::Right)
+    else
     {
-        setRightValue(newValue);
-        if (onRightValueChanged)
-            onRightValueChanged(rightValue);
+        if (currentDragMode == DragMode::Left)
+        {
+            setLeftValue(newValue);
+            if (onLeftValueChanged) onLeftValueChanged(leftValue);
+        }
+        else if (currentDragMode == DragMode::Right)
+        {
+            setRightValue(newValue);
+            if (onRightValueChanged) onRightValueChanged(rightValue);
+        }
     }
 }
 
@@ -86,7 +135,7 @@ void DualThumbSlider::mouseMove(const juce::MouseEvent& e)
     auto leftThumb = getLeftThumbBounds();
     auto rightThumb = getRightThumbBounds();
 
-    bool overLeftThumb = leftThumb.contains(e.position);
+    bool overLeftThumb  = leftThumb.contains(e.position);
     bool overRightThumb = rightThumb.contains(e.position);
 
     if (overLeftThumb || overRightThumb)
@@ -110,22 +159,35 @@ void DualThumbSlider::setRightValue(float newValue)
 juce::Rectangle<float> DualThumbSlider::getLeftThumbBounds() const
 {
     auto bounds = getLocalBounds().toFloat();
-    float thumbSize = bounds.getHeight() * 0.4f;
-    float x = getPositionFromValue(leftValue) - thumbSize * 0.5f;
-    float y = bounds.getY() + bounds.getHeight() * 0.1f;
+    float thumbWidth  = bounds.getHeight() * 0.5f;
+    float thumbHeight = bounds.getHeight() * 0.8f;
 
-    return juce::Rectangle<float>(x, y, thumbSize, thumbSize);
+    float minX = bounds.getX();
+    float maxX = bounds.getRight() - thumbWidth;
+
+    float x = getPositionFromValue(leftValue) - thumbWidth * 0.5f;
+    x = juce::jlimit(minX, maxX, x);
+
+    float y = bounds.getCentreY() - thumbHeight * 0.5f;
+    return { x, y, thumbWidth, thumbHeight };
 }
 
 juce::Rectangle<float> DualThumbSlider::getRightThumbBounds() const
 {
     auto bounds = getLocalBounds().toFloat();
-    float thumbSize = bounds.getHeight() * 0.4f;
-    float x = getPositionFromValue(rightValue) - thumbSize * 0.5f;
-    float y = bounds.getY() + bounds.getHeight() * 0.5f;
+    float thumbWidth  = bounds.getHeight() * 0.5f;
+    float thumbHeight = bounds.getHeight() * 0.8f;
 
-    return juce::Rectangle<float>(x, y, thumbSize, thumbSize);
+    float minX = bounds.getX();
+    float maxX = bounds.getRight() - thumbWidth;
+
+    float x = getPositionFromValue(rightValue) - thumbWidth * 0.5f;
+    x = juce::jlimit(minX, maxX, x);
+
+    float y = bounds.getCentreY() - thumbHeight * 0.5f;
+    return { x, y, thumbWidth, thumbHeight };
 }
+
 
 float DualThumbSlider::getValueFromPosition(float x) const
 {
