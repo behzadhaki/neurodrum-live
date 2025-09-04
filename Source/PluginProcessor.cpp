@@ -7,35 +7,44 @@
 
 NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : ProcessorBase (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     #endif
-                       )
+        : ProcessorBase (BusesProperties()
+#if ! JucePlugin_IsMidiEffect
+#if ! JucePlugin_IsSynth
+                                 .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+#endif
+                                 .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
+#endif
+)
 #endif
 {
     mSampler.addVoice(new AudioBufferSamplerVoice());
     mSampler.addVoice(new AudioBufferSamplerVoice());
-    
+
     mThreadPool = std::make_unique<ThreadPool>(1);
 
-    std::cout << "MODEL_RELATIVE_PATH: " << MODEL_RELATIVE_PATH << std::endl;
+#ifdef _WIN32
+    // On Windows, model is in the VST3 directory, not inside the bundle
+    String vst3Dir = String(std::getenv("APPDATA")) + "\\VST3\\";
+    mModelFile = File(vst3Dir + "log_kicks_full.onnx");
+#else
+    // On macOS, model is inside the VST3 bundle as before
+    File pluginBundle = File::getSpecialLocation(File::currentExecutableFile);
 
-    // check if the model file exists
-    mModelFile = juce::File::getSpecialLocation(juce::File::currentApplicationFile)
-                   .getChildFile(MODEL_RELATIVE_PATH);
+    while (pluginBundle.exists() && !pluginBundle.getFileName().endsWith(".vst3")) {
+        pluginBundle = pluginBundle.getParentDirectory();
+    }
+
+    mModelFile = pluginBundle.getChildFile("Contents").getChildFile("Resources").getChildFile("log_kicks_full.onnx");
+#endif
 
     std::cout << "Model file path: " << mModelFile.getFullPathName() << std::endl;
+
     if (!mModelFile.existsAsFile())
     {
-        std::cerr << "❌ Model file does not exist at: " << mModelFile.getFullPathName() << std::endl;
+        std::cerr << "Model file does not exist at: " << mModelFile.getFullPathName() << std::endl;
     } else
     {
-        std::cout << "✅ Model file exists at: " << mModelFile.getFullPathName() << std::endl;
-
+        std::cout << "Model file exists at: " << mModelFile.getFullPathName() << std::endl;
     }
 }
 
@@ -51,6 +60,8 @@ const juce::String NewPluginTemplateAudioProcessor::getName() const
 
 bool NewPluginTemplateAudioProcessor::acceptsMidi() const
 {
+
+
    #if JucePlugin_WantsMidiInput
     return true;
    #else

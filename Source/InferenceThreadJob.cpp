@@ -34,8 +34,9 @@ auto InferenceThreadJob::runJob() -> JobStatus
     Ort::SessionOptions options_ort;
 
     // Use JUCE's string conversion
-    File modelFile = mProcessor.getModelFile();
+    File modelFile = mProcessor.getModelFile();             // relative to plugin folder
     String juceModelPath = modelFile.getFullPathName();
+    std::cout << "Model file path: " << juceModelPath << std::endl;
 
     #ifdef _WIN32
         // On Windows, convert to wide string

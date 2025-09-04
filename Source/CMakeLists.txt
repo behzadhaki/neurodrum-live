@@ -156,10 +156,12 @@ configure_file(
 
 target_include_directories(${BaseTargetName} PRIVATE "${CMAKE_BINARY_DIR}")
 
+
 # ==============================================================================
 # Copy Plugin to Local VST3 Folder
 # ==============================================================================
 if(APPLE)
+    # On macOS, keep the model inside the bundle as before
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_BINARY_DIR}/Source/${PROJECT_NAME}_artefacts/${CMAKE_BUILD_TYPE}/VST3/${PROJECT_NAME}.vst3"
@@ -170,10 +172,18 @@ endif()
 if(WIN32)
     set(VST3_DESTINATION "$ENV{APPDATA}/VST3/${PROJECT_NAME}.vst3")
 
+    # Copy the VST3 bundle
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_BINARY_DIR}/Source/${PROJECT_NAME}_artefacts/${CMAKE_BUILD_TYPE}/VST3/${PROJECT_NAME}.vst3"
             "${VST3_DESTINATION}"
+            )
+
+    # Copy the model file next to the VST3 bundle (not inside it)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/models/${MODEL_FILENAME}"
+            "$ENV{APPDATA}/VST3/${MODEL_FILENAME}"
             )
 endif()
 
