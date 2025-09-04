@@ -156,6 +156,19 @@ auto InferenceThreadJob::runJob() -> JobStatus
     for (int i = 0; i < size; ++i)
         buffer.setSample(0, i, results_[i]);
 
+    // === Apply aggressive fade-out on last 10% ===
+    int numSamples = buffer.getNumSamples();
+    int fadeLength = numSamples / 10; // 10%
+    int fadeStart  = numSamples - fadeLength;
+
+    for (int i = 0; i < fadeLength; ++i)
+    {
+        float gain = juce::jmap((float)i, 0.0f, (float)fadeLength - 1, 1.0f, 0.0f);
+        float aggressive = gain * gain; // square curve for stronger fade
+        buffer.setSample(0, fadeStart + i,
+            buffer.getSample(0, fadeStart + i) * aggressive);
+    }
+
     const double fs = 16000.0;
     juce::BigInteger range;
     range.setRange(0, 128, true);
