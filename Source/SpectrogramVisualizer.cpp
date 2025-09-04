@@ -46,15 +46,15 @@ void SpectrogramVisualizer::computeFFT()
 void SpectrogramVisualizer::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
-
     g.setColour(juce::Colours::black.brighter(0.1f));
     g.fillRoundedRectangle(bounds, 8.0f);
 
     if (buffer.getNumSamples() == 0)
         return;
 
-    // --- Layout split ---
+    // Layout
     auto waveformArea = bounds.removeFromTop(bounds.getHeight() * 0.33f);
+    lastWaveformArea = waveformArea; // store for hit detection
     auto spectrumArea = bounds;
 
     // --- Draw waveform (top 1/3) ---
@@ -110,4 +110,63 @@ void SpectrogramVisualizer::paint(juce::Graphics& g)
 
         g.restoreState();
     }
+}
+
+void SpectrogramVisualizer::mouseDown(const juce::MouseEvent& e)
+{
+    if (lastWaveformArea.contains(e.position) && buffer.getNumSamples() > 0)
+    {
+
+        juce::File temp = writeBufferToTempWav();
+
+        if (auto* dnd = findParentComponentOfClass<juce::DragAndDropContainer>())
+        {
+            juce::StringArray files;
+            files.add(temp.getFullPathName());
+            dnd->performExternalDragDropOfFiles(files, false);
+        }
+    }
+}
+
+
+void SpectrogramVisualizer::mouseMove(const juce::MouseEvent& e)
+{
+    if (lastWaveformArea.contains(e.position) && buffer.getNumSamples() > 0)
+        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+    else
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+}
+
+void SpectrogramVisualizer::mouseExit(const juce::MouseEvent& e)
+{
+    setMouseCursor(juce::MouseCursor::NormalCursor);
+}
+
+
+void SpectrogramVisualizer::mouseDrag(const juce::MouseEvent& e)
+{
+    // optionally: nothing needed, startDragging fires on mouseDown
+}
+
+juce::File SpectrogramVisualizer::writeBufferToTempWav()
+{
+    auto tempFile = juce::File::createTempFile("generated_audio.wav");
+    tempFile.deleteFile();
+
+    juce::WavAudioFormat wavFormat;
+    std::unique_ptr<juce::FileOutputStream> stream(tempFile.createOutputStream());
+
+    if (stream)
+    {
+        std::unique_ptr<juce::AudioFormatWriter> writer(
+            wavFormat.createWriterFor(stream.get(), 16000.0, // sample rate (match InferenceJob)
+                                      (unsigned int) buffer.getNumChannels(),
+                                      16, {}, 0));
+        if (writer)
+        {
+            stream.release(); // writer owns it now
+            writer->writeFromAudioSampleBuffer(buffer, 0, buffer.getNumSamples());
+        }
+    }
+    return tempFile;
 }

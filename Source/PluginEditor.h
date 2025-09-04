@@ -47,7 +47,7 @@ public:
 
 
 // ================== Editor ==================
-class NewPluginTemplateAudioProcessorEditor  : public juce::AudioProcessorEditor
+class NewPluginTemplateAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::DragAndDropContainer
 {
 public:
     NewPluginTemplateAudioProcessorEditor (NewPluginTemplateAudioProcessor&);
