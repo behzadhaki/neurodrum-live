@@ -52,8 +52,10 @@ NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
         std::cout << "Model file exists at: " << mModelFile.getFullPathName() << std::endl;
     }
 
-    // 🔄 Start parameter polling
+    // Start parameter polling
+    mParamQueue = std::make_unique<DynamicLockFreeQueue<std::vector<float>, 32>>();
     startParamPolling();
+
 }
 
 NewPluginTemplateAudioProcessor::~NewPluginTemplateAudioProcessor()
@@ -275,7 +277,8 @@ void NewPluginTemplateAudioProcessor::timerCallback()
     if (current != mLastParams)
     {
         mLastParams = current;
-        mParamQueue.push(current);
+        if (mParamQueue)
+            mParamQueue->push(current);
 
         if (mThreadPool)
             mThreadPool->addJob(new InferenceThreadJob(*this), true);

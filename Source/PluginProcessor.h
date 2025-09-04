@@ -62,7 +62,7 @@ public:
     void startParamPolling();
 
     // Lockfree queue with latest params
-    StaticLockFreeQueue<std::vector<float>, 32> mParamQueue;
+    std::unique_ptr<DynamicLockFreeQueue<std::vector<float>, 32>> mParamQueue;
 
 private:
     // Parameter tree state for automation

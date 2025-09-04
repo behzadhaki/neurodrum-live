@@ -1,6 +1,8 @@
 #pragma once
 
 #include "PluginProcessor.h"
+#include "AudioVisualizer.h"
+#include "CustomSlider.h"
 
 class NewPluginTemplateAudioProcessorEditor  : public juce::AudioProcessorEditor, public Slider::Listener
 {
@@ -12,6 +14,7 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
     void sliderValueChanged (Slider* slider) override;
+    void updateVisualizer(const juce::AudioSampleBuffer& buffer);
 
 private:
     // This reference is provided as a quick way for your editor to
@@ -35,8 +38,8 @@ private:
         totalParams
     };
 
-    Slider mSliders[params::totalParams];
-    Label mLabels[params::totalParams];
+    AudioVisualizer mVisualizer;
+    CustomSlider mSliders[params::totalParams]; // replace default sliders
     std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> mSliderAttachments[params::totalParams];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewPluginTemplateAudioProcessorEditor)

@@ -4,6 +4,7 @@
     InferenceThreadJob.cpp
     Created: 2 Oct 2021 1:54:57pm
     Author:  Andrew Fyfe
+    Updated: 2025-09-04 (integrated lockfree param queue + GUI visualizer)
 
   ==============================================================================
 */
@@ -11,42 +12,37 @@
 #include "InferenceThreadJob.h"
 #include <onnxruntime_cxx_api.h>
 #include "AudioBufferSampler.h"
+#include "PluginEditor.h"
 
 InferenceThreadJob::InferenceThreadJob(NewPluginTemplateAudioProcessor& processor)
 : ThreadPoolJob("InferenceThreadPoolJob"), mProcessor(processor)
 {
-    
 }
 
 InferenceThreadJob::~InferenceThreadJob()
 {
-    
 }
 
 auto InferenceThreadJob::runJob() -> JobStatus
 {
     if (shouldExit())
-    {
         return JobStatus::jobNeedsRunningAgain;
-    }
 
+    // === Load ONNX model session ===
     Ort::Env env{OrtLoggingLevel::ORT_LOGGING_LEVEL_WARNING, "InferenceThreadJob"};
     Ort::SessionOptions options_ort;
 
-    // Use JUCE's string conversion
-    File modelFile = mProcessor.getModelFile();             // relative to plugin folder
+    File modelFile = mProcessor.getModelFile();
     String juceModelPath = modelFile.getFullPathName();
-    std::cout << "Model file path: " << juceModelPath << std::endl;
+    std::cout << "Generating " << std::endl;
 
-    #ifdef _WIN32
-        // On Windows, convert to wide string
-        std::wstring wide_path = juceModelPath.toWideCharPointer();
-        Ort::Session session_(env, wide_path.c_str(), options_ort);
-    #else
-        // On other platforms, use regular string
-            std::string model_path = juceModelPath.toStdString();
-            Ort::Session session_(env, model_path.c_str(), options_ort);
-    #endif
+   #ifdef _WIN32
+    std::wstring wide_path = juceModelPath.toWideCharPointer();
+    Ort::Session session_(env, wide_path.c_str(), options_ort);
+   #else
+    std::string model_path = juceModelPath.toStdString();
+    Ort::Session session_(env, model_path.c_str(), options_ort);
+   #endif
 
     if (!modelFile.existsAsFile() || modelFile.getFileExtension() != ".onnx")
     {
@@ -54,9 +50,17 @@ auto InferenceThreadJob::runJob() -> JobStatus
         return JobStatus::jobHasFinished;
     }
 
-    auto params = mProcessor.mParamQueue.getLatestOnly();
+    // === Get latest params from queue ===
+    std::vector<float> params;
+    if (mProcessor.mParamQueue && mProcessor.mParamQueue->getNumReady() > 0)
+    {
+        std::cout << "Params in queue: " << mProcessor.mParamQueue->getNumReady() << std::endl;
+        params = mProcessor.mParamQueue->getLatestOnly();
+    }
+
     if (params.empty())
         return JobStatus::jobHasFinished;
+
 
     const float attackVal     = params[0];
     const float releaseVal    = params[1];
@@ -68,12 +72,10 @@ auto InferenceThreadJob::runJob() -> JobStatus
     const float warmthVal     = params[7];
     const float sharpnessVal  = params[8];
 
-
     if (shouldExit())
-    {
         return JobStatus::jobNeedsRunningAgain;
-    }
 
+    // === Prepare input/output tensors ===
     Ort::Value env_tensor_{nullptr};
     std::array<int64_t, 3> env_shape_{16, 16000, 1};
 
@@ -86,67 +88,45 @@ auto InferenceThreadJob::runJob() -> JobStatus
     Ort::Value output_tensor_{nullptr};
     std::array<int64_t, 2> output_shape_{16, 16000};
 
-    if (shouldExit())
-    {
-        return JobStatus::jobNeedsRunningAgain;
-    }
-
     std::vector<float> input_env(16 * 16000);
     std::vector<float> input_params(16 * 7);
     bool input_is_train = false;
     std::vector<float> results_(16 * 16000);
     std::vector<Ort::Value> input_tensors;
 
-    if (shouldExit())
-    {
-        return JobStatus::jobNeedsRunningAgain;
-    }
-
-    /* ['brightness', 'hardness', 'depth', 'roughness', 'boominess', 'warmth', 'sharpness'] */
+    // === Fill params (brightness..sharpness) ===
     const std::array<float, 7> param_vals { brightnessVal,
-                                    hardnessVal,
-                                    depthVal,
-                                    roughnessVal,
-                                    boominessVal,
-                                    warmthVal,
-                                    sharpnessVal };
+                                            hardnessVal,
+                                            depthVal,
+                                            roughnessVal,
+                                            boominessVal,
+                                            warmthVal,
+                                            sharpnessVal };
 
-    /* populate input params vector with 16 repeats of the param values */
     int counter_params = 0;
-    while (counter_params < input_params.size()) {
-        for (int i = 0; i < param_vals.size(); ++i) {
+    while (counter_params < (int) input_params.size()) {
+        for (int i = 0; i < (int) param_vals.size(); ++i) {
             input_params[counter_params + i] = param_vals[i];
         }
-        counter_params += param_vals.size();
+        counter_params += (int) param_vals.size();
     }
 
-    if (shouldExit())
-    {
-        return JobStatus::jobNeedsRunningAgain;
-    }
-
-    /* populate envelope vector with 16 repeats of the set attack/release envelope */
+    // === Fill envelope (attack + release) ===
     const int size = 16000;
     const float endVal = 1.f;
     float currentVal = 0.f;
     int counter_env = 0;
-    float stepAttack = endVal / (attackVal*size);
-    float stepRelease = endVal / (releaseVal*size);
+    float stepAttack  = (attackVal > 0.0f ? endVal / (attackVal * size) : endVal);
+    float stepRelease = (releaseVal > 0.0f ? endVal / (releaseVal * size) : endVal);
 
-    //std::fill(input_is_train.begin(), input_is_train.end(), false);
     std::fill(input_env.begin(), input_env.end(), 0.f);
 
-    if (shouldExit())
-    {
-        return JobStatus::jobNeedsRunningAgain;
-    }
-
-    while (counter_env < input_env.size()) {
+    while (counter_env < (int) input_env.size()) {
         for (int i = 0; i < size; ++i)
         {
-            if (i < attackVal*size) {
+            if (i < attackVal * size) {
                 currentVal += stepAttack;
-                input_env[counter_env + i] = std::min(currentVal, 1.f);;
+                input_env[counter_env + i] = std::min(currentVal, 1.f);
             } else {
                 currentVal -= stepRelease;
                 input_env[counter_env + i] = std::max(currentVal, 0.f);
@@ -156,27 +136,14 @@ auto InferenceThreadJob::runJob() -> JobStatus
         counter_env += size;
     }
 
-    if (shouldExit())
-    {
-        return JobStatus::jobNeedsRunningAgain;
-    }
-
+    // === Create tensors ===
     auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-    env_tensor_ = Ort::Value::CreateTensor<float>(memory_info, input_env.data(), input_env.size(), env_shape_.data(), env_shape_.size());
-
+    env_tensor_    = Ort::Value::CreateTensor<float>(memory_info, input_env.data(), input_env.size(), env_shape_.data(), env_shape_.size());
     params_tensor_ = Ort::Value::CreateTensor<float>(memory_info, input_params.data(), input_params.size(), params_shape_.data(), params_shape_.size());
-
     is_train_tensor_ = Ort::Value::CreateTensor<bool>(memory_info, &input_is_train, 1, is_train_shape_.data(), is_train_shape_.size());
+    output_tensor_   = Ort::Value::CreateTensor<float>(memory_info, results_.data(), results_.size(), output_shape_.data(), output_shape_.size());
 
-    output_tensor_ = Ort::Value::CreateTensor<float>(memory_info, results_.data(), results_.size(), output_shape_.data(), output_shape_.size());
-
-    if (shouldExit())
-    {
-        return JobStatus::jobNeedsRunningAgain;
-    }
-
-
-    const char* input_names[] = {"cond_placeholder:0", "input_placeholder:0", "is_train:0"};
+    const char* input_names[]  = {"cond_placeholder:0", "input_placeholder:0", "is_train:0"};
     const char* output_names[] = {"Squeeze:0"};
 
     input_tensors.push_back(std::move(params_tensor_));
@@ -185,33 +152,31 @@ auto InferenceThreadJob::runJob() -> JobStatus
 
     session_.Run(Ort::RunOptions{nullptr}, input_names, input_tensors.data(), 3, output_names, &output_tensor_, 1);
 
-    if (shouldExit())
-    {
-        return JobStatus::jobNeedsRunningAgain;
-    }
-
-    AudioSampleBuffer buffer;
+    // === Build Audio Buffer from results ===
+    juce::AudioSampleBuffer buffer;
     buffer.setSize(2, size);
-    for (int c {0}; c < buffer.getNumChannels(); ++c)
+    for (int c = 0; c < buffer.getNumChannels(); ++c)
     {
-        for (int i {0}; i < size; ++i)
+        for (int i = 0; i < size; ++i)
         {
             buffer.setSample(c, i, results_[i]);
         }
-    }
-
-    if (shouldExit())
-    {
-        return JobStatus::jobNeedsRunningAgain;
     }
 
     const double fs = 16000.0;
     juce::BigInteger range;
     range.setRange(0, 128, true);
 
-    mProcessor.mSampler.addSound(new AudioBufferSamplerSound ("Sample", buffer, fs, range, 60, 0.1, 0.1, 10.0));
+    mProcessor.mSampler.addSound(new AudioBufferSamplerSound("Sample", buffer, fs, range, 60, 0.1, 0.1, 10.0));
+
+    // === Send to GUI visualizer ===
+    MessageManager::callAsync([buf = buffer, &processor = mProcessor]() mutable {
+        if (auto* editor = dynamic_cast<NewPluginTemplateAudioProcessorEditor*>(processor.getActiveEditor()))
+        {
+            editor->updateVisualizer(buf);
+        }
+    });
 
     DBG("inference complete");
-
     return JobStatus::jobHasFinished;
 }

@@ -23,22 +23,12 @@ NewPluginTemplateAudioProcessorEditor::NewPluginTemplateAudioProcessorEditor (Ne
 
     addAndMakeVisible(mPlayButton);
     addAndMakeVisible(mGenerateButton);
-
-    mLabels[params::attack].setText("Attack", NotificationType::dontSendNotification);
-    mLabels[params::release].setText("Release", NotificationType::dontSendNotification);
-    mLabels[params::brightness].setText("Brightness", NotificationType::dontSendNotification);
-    mLabels[params::hardness].setText("Hardness", NotificationType::dontSendNotification);
-    mLabels[params::depth].setText("Depth", NotificationType::dontSendNotification);
-    mLabels[params::roughness].setText("Roughness", NotificationType::dontSendNotification);
-    mLabels[params::boominess].setText("Boominess", NotificationType::dontSendNotification);
-    mLabels[params::warmth].setText("Warmth", NotificationType::dontSendNotification);
-    mLabels[params::sharpness].setText("Sharpness", NotificationType::dontSendNotification);
+    addAndMakeVisible(mVisualizer);
 
     for (int i = 0 ; i < params::totalParams; ++i) {
         mSliders[i].setSliderStyle(Slider::SliderStyle::LinearHorizontal);
         mSliders[i].setRange(Range<double> {0.0, 1.0}, 0.001);
         addAndMakeVisible(mSliders[i]);
-        addAndMakeVisible(mLabels[i]);
 
         // Create parameter attachments to connect sliders to parameters
         String paramID = audioProcessor.getParameterID(i);
@@ -75,11 +65,13 @@ void NewPluginTemplateAudioProcessorEditor::resized()
     Rectangle<float> boundsSliders { 0.075f, 0.125f, 0.75f, 0.8f };
     Rectangle<float> boundsLabels { 0.825f, 0.125f, 0.125f, 0.8f };
 
+    mVisualizer.setBoundsRelative(0.05f, 0.05f, 0.9f, 0.2f); // top section
+    // Sliders remain below
+
     for (int i = 0 ; i < params::totalParams; ++i) {
         Rectangle<float> sliderRect = boundsSliders.removeFromTop(0.07f);
         Rectangle<float> labelRect = boundsLabels.removeFromTop(0.07f);
         mSliders[i].setBoundsRelative(sliderRect);
-        mLabels[i].setBoundsRelative(labelRect);
     }
 }
 
@@ -87,4 +79,9 @@ void NewPluginTemplateAudioProcessorEditor::sliderValueChanged (Slider* slider)
 {
     // Parameter changes are now handled automatically by the AudioProcessorValueTreeState
     // attachments, so this method is no longer needed for parameter updates
+}
+
+void NewPluginTemplateAudioProcessorEditor::updateVisualizer(const juce::AudioSampleBuffer& buffer)
+{
+    mVisualizer.setBuffer(buffer);
 }
