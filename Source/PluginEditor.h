@@ -24,7 +24,7 @@ public:
         auto activeWidth = bounds.getWidth() * proportion;
         juce::Rectangle<float> activeRect(bounds.getX(), bounds.getY(), activeWidth, bounds.getHeight());
 
-        juce::ColourGradient grad(juce::Colours::white, activeRect.getX(), activeRect.getCentreY(),
+        juce::ColourGradient grad(juce::Colours::grey, activeRect.getX(), activeRect.getCentreY(),
                                   juce::Colours::black, activeRect.getRight(), activeRect.getCentreY(),
                                   false);
         g.setGradientFill(grad);
