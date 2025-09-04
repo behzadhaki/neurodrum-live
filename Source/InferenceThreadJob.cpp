@@ -153,21 +153,20 @@ auto InferenceThreadJob::runJob() -> JobStatus
     session_.Run(Ort::RunOptions{nullptr}, input_names, input_tensors.data(), 3, output_names, &output_tensor_, 1);
 
     // === Build Audio Buffer from results ===
-    juce::AudioSampleBuffer buffer;
-    buffer.setSize(2, size);
-    for (int c = 0; c < buffer.getNumChannels(); ++c)
-    {
-        for (int i = 0; i < size; ++i)
-        {
-            buffer.setSample(c, i, results_[i]);
-        }
-    }
+    juce::AudioBuffer<float> buffer;
+    buffer.setSize(1, size); // mono buffer
+    for (int i = 0; i < size; ++i)
+        buffer.setSample(0, i, results_[i]);
 
     const double fs = 16000.0;
     juce::BigInteger range;
     range.setRange(0, 128, true);
 
     mProcessor.mSampler.addSound(new AudioBufferSamplerSound("Sample", buffer, fs, range, 60, 0.1, 0.1, 10.0));
+
+    // === Push buffer into audio queue for GUI & playback ===
+    if (mProcessor.mAudioBufferQueue)
+        mProcessor.mAudioBufferQueue->push(buffer);
 
     // === Send to GUI visualizer ===
     MessageManager::callAsync([buf = buffer, &processor = mProcessor]() mutable {
@@ -176,6 +175,7 @@ auto InferenceThreadJob::runJob() -> JobStatus
             editor->updateVisualizer(buf);
         }
     });
+
 
     DBG("inference complete");
     return JobStatus::jobHasFinished;

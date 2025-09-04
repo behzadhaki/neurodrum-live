@@ -79,6 +79,7 @@ target_sources(${BaseTargetName} PRIVATE
         PluginEditor.cpp
         InferenceThreadJob.cpp
         AudioBufferSampler.cpp
+        SpectrogramVisualizer.cpp
         )
 
 target_compile_definitions(${BaseTargetName}
@@ -107,9 +108,11 @@ if(WIN32)
             juce::juce_graphics
             juce::juce_gui_basics
             juce::juce_gui_extra
+            juce::juce_dsp
             juce_recommended_config_flags
             juce_recommended_lto_flags
             juce_recommended_warning_flags
+
             )
 else()
     target_link_libraries(${BaseTargetName} PRIVATE
@@ -126,6 +129,7 @@ else()
             juce::juce_graphics
             juce::juce_gui_basics
             juce::juce_gui_extra
+            juce::juce_dsp
             juce_recommended_config_flags
             juce_recommended_lto_flags
             juce_recommended_warning_flags

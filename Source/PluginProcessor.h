@@ -63,6 +63,7 @@ public:
 
     // Lockfree queue with latest params
     std::unique_ptr<DynamicLockFreeQueue<std::vector<float>, 32>> mParamQueue;
+    std::unique_ptr<DynamicLockFreeQueue<juce::AudioBuffer<float>, 8>> mAudioBufferQueue;
 
 private:
     // Parameter tree state for automation

@@ -42,6 +42,9 @@ NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
     mModelFile = pluginBundle.getChildFile("Contents").getChildFile("Resources").getChildFile("log_kicks_full.onnx");
 #endif
 
+    mParamQueue = std::make_unique<DynamicLockFreeQueue<std::vector<float>, 32>>();
+    mAudioBufferQueue = std::make_unique<DynamicLockFreeQueue<juce::AudioBuffer<float>, 8>>();
+
     std::cout << "Model file path: " << mModelFile.getFullPathName() << std::endl;
 
     if (!mModelFile.existsAsFile())
