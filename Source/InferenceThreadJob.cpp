@@ -29,17 +29,30 @@ auto InferenceThreadJob::runJob() -> JobStatus
     {
         return JobStatus::jobNeedsRunningAgain;
     }
-    
-    const File modelFile = mProcessor.getModelFile();
-    
+
+    Ort::Env env{OrtLoggingLevel::ORT_LOGGING_LEVEL_WARNING, "InferenceThreadJob"};
+    Ort::SessionOptions options_ort;
+
+    // Use JUCE's string conversion
+    File modelFile = mProcessor.getModelFile();
+    String juceModelPath = modelFile.getFullPathName();
+
+    #ifdef _WIN32
+        // On Windows, convert to wide string
+        std::wstring wide_path = juceModelPath.toWideCharPointer();
+        Ort::Session session_(env, wide_path.c_str(), options_ort);
+    #else
+        // On other platforms, use regular string
+            std::string model_path = juceModelPath.toStdString();
+            Ort::Session session_(env, model_path.c_str(), options_ort);
+    #endif
+
     if (!modelFile.existsAsFile() || modelFile.getFileExtension() != ".onnx")
     {
         DBG("invalid model file format");
         return JobStatus::jobHasFinished;
     }
-    
-    auto model_file = mProcessor.getModelFile().getFullPathName().toStdString();
-    
+
     const float attackVal = mProcessor.mAttackVal.load();
     const float releaseVal = mProcessor.mReleaseVal.load();
     const float brightnessVal = mProcessor.mBrightnessVal.load();
@@ -49,10 +62,6 @@ auto InferenceThreadJob::runJob() -> JobStatus
     const float boominessVal = mProcessor.mBoominessVal.load();
     const float warmthVal = mProcessor.mWarmthVal.load();
     const float sharpnessVal = mProcessor.mSharpnessVal.load();
-    
-    const Ort::SessionOptions options_ort{nullptr};
-    Ort::Env env;
-    Ort::Session session_{env, model_file.c_str(), options_ort};
     
     if (shouldExit())
     {
