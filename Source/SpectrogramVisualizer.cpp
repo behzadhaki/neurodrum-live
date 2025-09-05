@@ -106,6 +106,13 @@ void SpectrogramVisualizer::paint(juce::Graphics& g)
     }
     g.strokePath(leftWaveformPath, juce::PathStrokeType(2.0f));
 
+    // Add L/R channel indicators
+    g.setColour(juce::Colours::lightblue);
+    g.setFont(12.0f);
+    g.drawText("L", waveformArea.getWidth()-30, 15, 20, 20, juce::Justification::centred);
+    g.setColour(juce::Colours::lightcoral);
+    g.drawText("R", waveformArea.getWidth()-30, 30, 20, 20, juce::Justification::centred);
+
     // Right channel waveform (red) - if stereo
     if (numChannels >= 2)
     {

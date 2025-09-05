@@ -298,14 +298,6 @@ NewPluginTemplateAudioProcessorEditor::NewPluginTemplateAudioProcessorEditor (Ne
 void NewPluginTemplateAudioProcessorEditor::paint (juce::Graphics& g)
 {
     g.fillAll (juce::Colours::black);
-
-    // Add L/R channel indicators
-    g.setColour(juce::Colours::lightblue);
-    g.setFont(12.0f);
-    g.drawText("L", 10, 10, 20, 20, juce::Justification::centred);
-
-    g.setColour(juce::Colours::lightcoral);
-    g.drawText("R", 10, 35, 20, 20, juce::Justification::centred);
 }
 
 void NewPluginTemplateAudioProcessorEditor::resized()
