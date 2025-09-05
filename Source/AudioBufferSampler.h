@@ -87,11 +87,16 @@ public:
     
     using SynthesiserVoice::renderNextBlock;
 
+    double getCurrentPlayheadPosition() const;
+
+    double stoppedPlayhead = 0.0;
+
 private:
     //==============================================================================
     double pitchRatio = 0;
     double sourceSamplePosition = 0;
     float lgain = 0, rgain = 0;
+    bool noteStopped = false;
 
     ADSR adsr;
 

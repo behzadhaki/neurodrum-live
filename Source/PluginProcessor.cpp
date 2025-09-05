@@ -55,6 +55,7 @@ NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
 
     mParamQueue = std::make_unique<DynamicLockFreeQueue<std::vector<float>, 32>>();
     mAudioBufferQueue = std::make_unique<DynamicLockFreeQueue<juce::AudioBuffer<float>, 8>>();
+    mPlayheadQueue = std::make_unique<DynamicLockFreeQueue<std::pair<int,float>, 128>>();
 
     std::cout << "Model file path: " << mModelFile.getFullPathName() << std::endl;
 
@@ -243,9 +244,11 @@ bool NewPluginTemplateAudioProcessor::isBusesLayoutSupported (const BusesLayout&
 }
 #endif
 
-void NewPluginTemplateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void NewPluginTemplateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
+                                                    juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
+
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
@@ -253,7 +256,33 @@ void NewPluginTemplateAudioProcessor::processBlock (juce::AudioBuffer<float>& bu
         buffer.clear (i, 0, buffer.getNumSamples());
 
     mSampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+
+    // Track the latest active voice only (for playhead visualization)
+    bool anyActive = false;
+
+    for (int i = 0; i < mSampler.getNumVoices(); ++i)
+    {
+        if (auto* voice = dynamic_cast<AudioBufferSamplerVoice*>(mSampler.getVoice(i)))
+        {
+            if (voice->isVoiceActive())
+            {
+                float norm = static_cast<float>(voice->getCurrentPlayheadPosition());
+                if (mPlayheadQueue)
+                    mPlayheadQueue->push({ i, norm });
+                anyActive = true;
+            }
+        }
+    }
+
+    if (!anyActive && mPlayheadQueue)
+    {
+        // sentinel = no active playheads
+        mPlayheadQueue->push({ -1, -1.0f });
+    }
+
 }
+
+
 
 //==============================================================================
 bool NewPluginTemplateAudioProcessor::hasEditor() const
@@ -315,6 +344,7 @@ void NewPluginTemplateAudioProcessor::timerCallback()
         if (mThreadPool)
             mThreadPool->addJob(new InferenceThreadJob(*this), true);
     }
+
 }
 
 const File NewPluginTemplateAudioProcessor::getModelFile()

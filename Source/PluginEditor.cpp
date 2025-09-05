@@ -188,7 +188,6 @@ juce::Rectangle<float> DualThumbSlider::getRightThumbBounds() const
     return { x, y, thumbWidth, thumbHeight };
 }
 
-
 float DualThumbSlider::getValueFromPosition(float x) const
 {
     auto bounds = getLocalBounds().toFloat();
@@ -353,6 +352,22 @@ void NewPluginTemplateAudioProcessorEditor::timerCallback()
             mVisualizer.setBuffer(latestBuffer);
         }
     }
+
+    // playhead updates
+    if (audioProcessor.mPlayheadQueue && audioProcessor.mPlayheadQueue->getNumReady() > 0)
+    {
+        std::vector<std::pair<int,float>> collected;
+
+        while (audioProcessor.mPlayheadQueue->getNumReady() > 0)
+        {
+            auto pair = audioProcessor.mPlayheadQueue->pop();
+            if (pair.first >= 0 && pair.second >= 0.0f)
+                collected.push_back(pair);
+        }
+
+        mVisualizer.setPlayheads(collected);
+    }
+
 }
 
 NewPluginTemplateAudioProcessorEditor::~NewPluginTemplateAudioProcessorEditor()

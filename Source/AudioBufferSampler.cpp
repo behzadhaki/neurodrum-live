@@ -45,6 +45,9 @@ bool AudioBufferSamplerVoice::canPlaySound (SynthesiserSound* sound)
 
 void AudioBufferSamplerVoice::startNote (int midiNoteNumber, float velocity, SynthesiserSound* s, int pitchWheel)
 {
+    noteStopped = false;
+    sourceSamplePosition = 0.0;
+
     if (auto* sound = dynamic_cast<const AudioBufferSamplerSound*> (s))
     {
         pitchRatio = std::pow (2.0, (midiNoteNumber - sound->midiRootNote) / 12.0)
@@ -67,15 +70,29 @@ void AudioBufferSamplerVoice::startNote (int midiNoteNumber, float velocity, Syn
 
 void AudioBufferSamplerVoice::stopNote (float velocity, bool allowTailOff)
 {
+    noteStopped = true;
+    stoppedPlayhead = getCurrentPlayheadPosition();
+
     if (allowTailOff)
-    {
         adsr.noteOff();
-    }
     else
     {
         clearCurrentNote();
         adsr.reset();
     }
+}
+
+double AudioBufferSamplerVoice::getCurrentPlayheadPosition() const
+{
+    if (noteStopped)
+        return stoppedPlayhead;
+
+    if (auto* sound = dynamic_cast<AudioBufferSamplerSound*>(getCurrentlyPlayingSound().get()))
+    {
+        if (sound->getAudioData() != nullptr && sound->getAudioData()->getNumSamples() > 0)
+            return sourceSamplePosition / (double) sound->getAudioData()->getNumSamples();
+    }
+    return 0.0;
 }
 
 void AudioBufferSamplerVoice::renderNextBlock (AudioBuffer<float>& outputBuffer, int startSample, int numSamples)

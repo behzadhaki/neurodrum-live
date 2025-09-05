@@ -2,41 +2,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_dsp/juce_dsp.h>
 #include <juce_audio_formats/juce_audio_formats.h>
-
-class SpectrogramVisualizer : public juce::Component
-{
-public:
-    SpectrogramVisualizer();
-    ~SpectrogramVisualizer() override;
-
-    void setBuffer(const juce::AudioSampleBuffer& newBuffer);
-    void paint(juce::Graphics& g) override;
-
-    void mouseDown(const juce::MouseEvent& e) override;
-    void mouseDrag(const juce::MouseEvent& e) override;
-    void mouseMove(const juce::MouseEvent& e) override;
-    void mouseExit(const juce::MouseEvent& e) override;
-
-private:
-    void computeFFT();
-    juce::File writeBufferToTempWav();
-
-    juce::AudioSampleBuffer buffer;
-
-    // Separate spectrum data for each channel
-    std::vector<float> leftMagnitudeSpectrum;
-    std::vector<float> rightMagnitudeSpectrum;
-
-    juce::Rectangle<float> lastWaveformArea;
-
-    static constexpr int fftOrder = 9;
-    static constexpr int fftSize = 1 << fftOrder;
-
-    juce::dsp::FFT fft { fftOrder };
-    juce::dsp::WindowingFunction<float> window { fftSize, juce::dsp::WindowingFunction<float>::hann };
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpectrogramVisualizer)
-};
+#include "SpectrogramVisualizer.h"
 
 // SpectrogramVisualizer.cpp - Implementation
 SpectrogramVisualizer::SpectrogramVisualizer() {}
@@ -208,6 +174,27 @@ void SpectrogramVisualizer::paint(juce::Graphics& g)
 
         g.restoreState();
     }
+
+    // --- Draw playhead ---
+    if (!playheads.empty() && buffer.getNumSamples() > 0)
+    {
+        for (size_t idx = 0; idx < playheads.size(); ++idx)
+        {
+            float normalized = playheads[idx].second;
+            if (normalized < 0.0f) continue; // skip sentinel
+
+            float x = juce::jmap(normalized,
+                                 0.0f, 1.0f,
+                                 lastWaveformArea.getX(), lastWaveformArea.getRight());
+
+            float shade = juce::jmap((float)idx,
+                                     0.0f, (float)playheads.size() - 1,
+                                     0.9f, 0.3f);
+            g.setColour(juce::Colour(shade, shade, shade, 0.9f));
+            g.drawLine(x, lastWaveformArea.getY(), x, lastWaveformArea.getBottom(), 2.0f);
+        }
+    }
+
 }
 
 void SpectrogramVisualizer::mouseDown(const juce::MouseEvent& e)
@@ -264,4 +251,10 @@ juce::File SpectrogramVisualizer::writeBufferToTempWav()
         }
     }
     return tempFile;
+}
+
+void SpectrogramVisualizer::setPlayheads(const std::vector<std::pair<int,float>>& newPlayheads)
+{
+    playheads = newPlayheads;
+    repaint();
 }

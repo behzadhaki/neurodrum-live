@@ -64,6 +64,7 @@ public:
     // Lockfree queue with latest params (now stereo - 18 params total)
     std::unique_ptr<DynamicLockFreeQueue<std::vector<float>, 32>> mParamQueue;
     std::unique_ptr<DynamicLockFreeQueue<juce::AudioBuffer<float>, 8>> mAudioBufferQueue;
+    std::unique_ptr<DynamicLockFreeQueue<std::pair<int,float>, 128>> mPlayheadQueue;
 
     std::atomic<bool> mIsBeingDestroyed{false};
 
