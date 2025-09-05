@@ -47,10 +47,18 @@ NewPluginTemplateAudioProcessor::NewPluginTemplateAudioProcessor()
     mModelFile = File(vst3Dir + "log_kicks_full.onnx");
 #else
     File pluginBundle = File::getSpecialLocation(File::currentExecutableFile);
-    while (pluginBundle.exists() && !pluginBundle.getFileName().endsWith(".vst3")) {
+
+    // Walk up until we find either a .vst3 or .component bundle
+    while (pluginBundle.exists() &&
+           !(pluginBundle.getFileName().endsWith(".vst3") ||
+             pluginBundle.getFileName().endsWith(".component")))
+    {
         pluginBundle = pluginBundle.getParentDirectory();
     }
-    mModelFile = pluginBundle.getChildFile("Contents").getChildFile("Resources").getChildFile("log_kicks_full.onnx");
+
+    mModelFile = pluginBundle.getChildFile("Contents")
+                              .getChildFile("Resources")
+                              .getChildFile("log_kicks_full.onnx");
 #endif
 
     mParamQueue = std::make_unique<DynamicLockFreeQueue<std::vector<float>, 32>>();
