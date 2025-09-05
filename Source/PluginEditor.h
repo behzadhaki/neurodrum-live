@@ -74,6 +74,7 @@ private:
     // Visual components
     std::unique_ptr<DualThumbSlider> mSliders[params::totalParams];
     std::unique_ptr<juce::Label> mLabels[params::totalParams];
+    std::unique_ptr<juce::Label> mFooterLabel;
 
     // Hidden sliders
     std::unique_ptr<juce::Slider> mLeftSliders[params::totalParams];
@@ -82,6 +83,7 @@ private:
     // THESE MUST BE DECLARED LAST (destroyed first)
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mLeftAttachments[params::totalParams];
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mRightAttachments[params::totalParams];
+
 
     void timerCallback() override;
 

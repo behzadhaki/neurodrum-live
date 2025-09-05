@@ -282,7 +282,16 @@ NewPluginTemplateAudioProcessorEditor::NewPluginTemplateAudioProcessorEditor (Ne
 
     addAndMakeVisible(mVisualizer);
 
-    // On load, check if processor has queued audio
+    mFooterLabel = std::make_unique<juce::Label>();
+    mFooterLabel->setText(
+        "Shift + Drag a slider: move both thumbs together   |   Drag waveform: export to WAV file",
+        juce::dontSendNotification);
+    mFooterLabel->setJustificationType(juce::Justification::centred);
+    mFooterLabel->setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    mFooterLabel->setFont(10.0f);
+    addAndMakeVisible(*mFooterLabel);
+
+    // On load, check if processor has queued generations and display latest
     if (audioProcessor.mAudioBufferQueue)
     {
         auto latest = audioProcessor.mAudioBufferQueue->getLatestDataWithoutMovingFIFOHeads();
@@ -290,7 +299,7 @@ NewPluginTemplateAudioProcessorEditor::NewPluginTemplateAudioProcessorEditor (Ne
             mVisualizer.setBuffer(latest);
     }
 
-    setSize (700, 400); // Slightly larger for stereo view
+    setSize (600, 300); // Slightly larger for stereo view
 
     startTimerHz(30); // 30 Hz timer for polling audio buffer
 }
@@ -303,6 +312,9 @@ void NewPluginTemplateAudioProcessorEditor::paint (juce::Graphics& g)
 void NewPluginTemplateAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced(10);
+
+    auto footerArea = area.removeFromBottom(20);
+    mFooterLabel->setBounds(footerArea.reduced(5));
 
     auto left = area.removeFromLeft(area.getWidth() * 0.4f);
     auto right = area;
