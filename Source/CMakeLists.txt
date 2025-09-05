@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(NeuralDrumLive VERSION 0.0.1)
+project(NeuralDrumLiveV2 VERSION 0.0.1)
 
-set(BaseTargetName NeuralDrumLive)
+set(BaseTargetName NeuralDrumLiveV2)
 
 juce_add_plugin("${BaseTargetName}"
         COMPANY_NAME "MusicTechnologyGroup"
@@ -16,7 +16,7 @@ juce_add_plugin("${BaseTargetName}"
         PLUGIN_CODE NPtm
         # Build both VST3 and AU (classic Audio Unit v2)
         FORMATS VST3 AU
-        PRODUCT_NAME "NeuralDrumLive"
+        PRODUCT_NAME "NeuralDrumLiveV2"
 )
 
 # ==============================================================================
