@@ -96,26 +96,23 @@ AudioProcessorValueTreeState::ParameterLayout NewPluginTemplateAudioProcessor::c
 {
     std::vector<std::unique_ptr<RangedAudioParameter>> params;
 
-    // Left Channel Parameters
     params.push_back(std::make_unique<AudioParameterFloat>(ATTACK_L_ID, "Attack L", 0.0f, 1.0f, 0.1f));
-    params.push_back(std::make_unique<AudioParameterFloat>(RELEASE_L_ID, "Release L", 0.0f, 1.0f, 0.9f));
-    params.push_back(std::make_unique<AudioParameterFloat>(BRIGHTNESS_L_ID, "Brightness L", 0.0f, 1.0f, 0.46533436f));
-    params.push_back(std::make_unique<AudioParameterFloat>(HARDNESS_L_ID, "Hardness L", 0.0f, 1.0f, 0.6132435f));
-    params.push_back(std::make_unique<AudioParameterFloat>(DEPTH_L_ID, "Depth L", 0.0f, 1.0f, 0.6906892f));
-    params.push_back(std::make_unique<AudioParameterFloat>(ROUGHNESS_L_ID, "Roughness L", 0.0f, 1.0f, 0.5227648f));
-    params.push_back(std::make_unique<AudioParameterFloat>(BOOMINESS_L_ID, "Boominess L", 0.0f, 1.0f, 0.6955591f));
-    params.push_back(std::make_unique<AudioParameterFloat>(WARMTH_L_ID, "Warmth L", 0.0f, 1.0f, 0.733622f));
-    params.push_back(std::make_unique<AudioParameterFloat>(SHARPNESS_L_ID, "Sharpness L", 0.0f, 1.0f, 0.4321724f));
-
-    // Right Channel Parameters
     params.push_back(std::make_unique<AudioParameterFloat>(ATTACK_R_ID, "Attack R", 0.0f, 1.0f, 0.1f));
+    params.push_back(std::make_unique<AudioParameterFloat>(RELEASE_L_ID, "Release L", 0.0f, 1.0f, 0.9f));
     params.push_back(std::make_unique<AudioParameterFloat>(RELEASE_R_ID, "Release R", 0.0f, 1.0f, 0.9f));
+    params.push_back(std::make_unique<AudioParameterFloat>(BRIGHTNESS_L_ID, "Brightness L", 0.0f, 1.0f, 0.46533436f));
     params.push_back(std::make_unique<AudioParameterFloat>(BRIGHTNESS_R_ID, "Brightness R", 0.0f, 1.0f, 0.46533436f));
+    params.push_back(std::make_unique<AudioParameterFloat>(HARDNESS_L_ID, "Hardness L", 0.0f, 1.0f, 0.6132435f));
     params.push_back(std::make_unique<AudioParameterFloat>(HARDNESS_R_ID, "Hardness R", 0.0f, 1.0f, 0.6132435f));
+    params.push_back(std::make_unique<AudioParameterFloat>(DEPTH_L_ID, "Depth L", 0.0f, 1.0f, 0.6906892f));
     params.push_back(std::make_unique<AudioParameterFloat>(DEPTH_R_ID, "Depth R", 0.0f, 1.0f, 0.6906892f));
+    params.push_back(std::make_unique<AudioParameterFloat>(ROUGHNESS_L_ID, "Roughness L", 0.0f, 1.0f, 0.5227648f));
     params.push_back(std::make_unique<AudioParameterFloat>(ROUGHNESS_R_ID, "Roughness R", 0.0f, 1.0f, 0.5227648f));
+    params.push_back(std::make_unique<AudioParameterFloat>(BOOMINESS_L_ID, "Boominess L", 0.0f, 1.0f, 0.6955591f));
     params.push_back(std::make_unique<AudioParameterFloat>(BOOMINESS_R_ID, "Boominess R", 0.0f, 1.0f, 0.6955591f));
+    params.push_back(std::make_unique<AudioParameterFloat>(WARMTH_L_ID, "Warmth L", 0.0f, 1.0f, 0.733622f));
     params.push_back(std::make_unique<AudioParameterFloat>(WARMTH_R_ID, "Warmth R", 0.0f, 1.0f, 0.733622f));
+    params.push_back(std::make_unique<AudioParameterFloat>(SHARPNESS_L_ID, "Sharpness L", 0.0f, 1.0f, 0.4321724f));
     params.push_back(std::make_unique<AudioParameterFloat>(SHARPNESS_R_ID, "Sharpness R", 0.0f, 1.0f, 0.4321724f));
 
     return { params.begin(), params.end() };
