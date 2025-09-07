@@ -26,6 +26,6 @@ The model used is based on the following paper:
 # Compatibility
 
 - [x] MacOS (ARM)
-- [ ] MacOS (Intel)
+- [x] MacOS (Intel)
 - [ ] Linux
-- [ ] Windows
+- [x] Windows
